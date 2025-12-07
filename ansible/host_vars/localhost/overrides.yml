@@ -1,0 +1,6 @@
+---
+# Override any of the variables in host_vars in this file.
+# Changes to this file are ignored by git.
+#
+# If you wish to make an override permanent, commit it to the
+# respective host_vars file(s) and open a pull request.

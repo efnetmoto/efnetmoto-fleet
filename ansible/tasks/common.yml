@@ -1,0 +1,34 @@
+- name: Install Docker if not already installed
+  ansible.builtin.include_role:
+    name: geerlingguy.docker
+    apply:
+      become: true
+  when: manage_docker | bool
+
+- name: Create runtime directories if they don't exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ runtime_dirs }}"
+
+- name: Check if userfile exists (first run check)
+  ansible.builtin.stat:
+    path: "bots/{{ bot_nick }}/data/{{ bot_nick }}.user"
+  register: userfile_stat
+
+- name: Warn if userfile is missing
+  ansible.builtin.debug:
+    msg: |
+      WARNING: Userfile not found at bots/{{ bot_nick }}/data/{{ bot_nick }}.user
+      This is expected for first deployment. Make sure to migrate your existing
+      userfile (and optionally chan and notes file(s)) before starting the bot.
+      See bots/{{ bot_nick }}/data/README.md for migration instructions.
+  when: not userfile_stat.stat.exists
+
+- name: Generate eggdrop.conf from template
+  ansible.builtin.template:
+    src: templates/eggdrop.conf.j2
+    dest: "bots/{{ bot_nick }}/data/eggdrop.conf"
+    mode: "0640"
+  become: true
