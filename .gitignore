@@ -1,0 +1,26 @@
+# Bot runtime data
+bots/*/data/*
+!bots/*/data/README.md
+
+# Bot logs (all subdirectories)
+bots/*/logs/**/*
+!bots/*/logs/**/README.md
+
+# Pisg cache and output
+bots/*/pisg-cache/*
+!bots/*/pisg-cache/README.md
+bots/*/html/*
+!bots/*/html/README.md
+
+# Pisg generated config (template-generated, not static)
+bots/*/pisg-config/pisg.cfg
+
+# Environment files
+bots/*/.env
+
+# Docker compose overrides
+bots/*/docker-compose.override.yml
+
+# Ansible
+*.retry
+.ansible/

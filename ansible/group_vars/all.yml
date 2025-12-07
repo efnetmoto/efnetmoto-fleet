@@ -1,0 +1,48 @@
+---
+# Common variables shared across all bots
+
+# IRC Network Configuration
+irc_network: "EFnet"
+timezone_offset: 8
+
+# EFnet Server List
+# For SSL, prepend the port with '+'
+# If no port is provided, the default (6667) will be used
+irc_servers:
+  - host: "irc.choopa.net"
+    port: "+9999"
+  - host: "irc.colosolutions.net"
+    port: "+6697"
+  - host: "irc.mzima.net"
+    port: "+9999"
+  - host: "irc.prison.net"
+    port: "+6697"
+  - host: "irc.deft.com"
+    port: "+6697"
+  - host: "irc.du.se"
+    port: "+6697"
+  - host: "irc.swepipe.se"
+    port: "+6697"
+  - host: "efnet.tngnet.nl"
+    port: "+6697"
+  - host: "irc.efnet.nl"
+    port: "+6697"
+  - host: "efnet.deic.eu"
+    port: "+6697"
+
+# Channel Configuration
+channels:
+  - name: "#motorcycles"
+    mode: "+nt-k"
+    idle_kick: 0
+    stopnethack_mode: 0
+    revenge_mode: 0
+    ban_time: 300
+    flags: ""
+
+# Common DCC Settings
+dcc_portrange_start: 2010
+dcc_portrange_end: 2019
+
+# IPv6 Preference
+prefer_ipv6: 0

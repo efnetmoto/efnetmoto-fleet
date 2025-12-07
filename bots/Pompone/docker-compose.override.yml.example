@@ -1,0 +1,51 @@
+# Docker Compose Override Example
+# 
+# Copy this file to docker-compose.override.yml to customize your deployment
+# without modifying the main docker-compose.yml file.
+#
+# Docker Compose automatically merges docker-compose.override.yml with
+# docker-compose.yml when you run docker-compose commands.
+
+# Example 1: Expose nginx on a different port
+# services:
+#   nginx:
+#     ports:
+#       - "8888:80"
+
+# Example 2: Add nginx to Traefik reverse proxy network
+# services:
+#   nginx:
+#     networks:
+#       - traefik-proxy
+#       - pompone-net
+#     labels:
+#       - "traefik.enable=true"
+#       - "traefik.http.routers.pompone.rule=Host(`stats.example.com`)"
+#       - "traefik.http.routers.pompone.entrypoints=websecure"
+#       - "traefik.http.routers.pompone.tls.certresolver=letsencrypt"
+#       - "traefik.http.services.pompone.loadbalancer.server.port=80"
+# 
+# networks:
+#   traefik-proxy:
+#     external: true
+
+# Example 3: Mount additional volumes
+# services:
+#   pompone:
+#     volumes:
+#       - /path/to/custom/scripts:/home/eggdrop/eggdrop/scripts-extra:ro
+
+# Example 4: Add resource limits
+# services:
+#   pompone:
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 512M
+#   pisg:
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.25'
+#           memory: 256M
