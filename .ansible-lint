@@ -1,0 +1,34 @@
+---
+# Ansible-lint configuration
+
+profile: production
+
+# Paths to exclude from linting
+exclude_paths:
+  - .github/
+  - node_modules/
+  - .git/
+  - bots/*/data/
+  - bots/*/logs/
+  - bots/*/html/
+  - bots/*/pisg-cache/
+  - services/
+
+# Only lint ansible directory and playbooks
+kinds:
+  - playbook: 'deploy-*.yml'
+  - vars: 'ansible/group_vars/**/*.yml'
+  - vars: 'ansible/host_vars/**/*.yml'
+  - requirements: 'ansible/requirements.yml'
+  - yaml: '.yamllint.yml'
+
+skip_list:
+  - package-latest             # We use latest for bootstrap convenience
+  - no-changed-when            # Some commands are intentionally informational
+  - command-instead-of-module  # docker commands are intentional
+
+warn_list:
+  - experimental  # Warn on experimental features
+
+# Enable checking of variable names
+var_naming_pattern: "^[a-z_][a-z0-9_]*$"
