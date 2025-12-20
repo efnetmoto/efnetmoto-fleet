@@ -1,0 +1,9 @@
+---
+# Hadolint configuration for Dockerfile linting
+
+ignored:
+  - DL3018  # Pin versions in apk add (we accept latest for base packages)
+  - DL3059  # Multiple consecutive RUN instructions (acceptable for clarity)
+
+trustedRegistries:
+  - docker.io
