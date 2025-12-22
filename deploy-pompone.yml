@@ -9,13 +9,18 @@
 
   tasks:
 
+    - name: Check for local overrides file
+      ansible.builtin.stat:
+        path: ansible/host_vars/localhost/overrides.yml
+      register: overrides_stat
+
     - name: Load local override vars if present
       ansible.builtin.include_vars:
         file: ansible/host_vars/localhost/overrides.yml
-      when: ansible.builtin.stat(path='ansible/host_vars/localhost/overrides.yml').stat.exists
+      when: overrides_stat.stat.exists
 
     - name: Run common tasks
-      ansible.builtin.import_tasks: ansible/tasks/common.yml
+      ansible.builtin.import_tasks: ansible/tasks/deploy-common.yml
 
     - name: Generate pisg.cfg from template
       ansible.builtin.template:

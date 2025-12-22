@@ -32,3 +32,12 @@
     dest: "bots/{{ bot_nick }}/data/eggdrop.conf"
     mode: "0640"
   become: true
+
+- name: Create daily backup cron job
+  ansible.builtin.cron:
+    name: "Daily {{ bot_nick }} backup"
+    special_time: daily
+    user: "{{ ansible_user_id }}"
+    job: >
+      /usr/bin/env ansible-playbook {{ playbook_dir }}/backup-{{ bot_nick | lower }}.yml
+      > /dev/null

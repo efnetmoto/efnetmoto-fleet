@@ -1,0 +1,85 @@
+---
+# Prepare backup - Create staging directories and copy common files
+# Bot-specific playbooks should include this and add custom tasks in between
+
+- name: Check if bot has runtime data to backup
+  ansible.builtin.find:
+    paths: "{{ bot_dir }}/data"
+    patterns: "*.user,*.chan,*.notes"
+  register: bot_data_files
+
+- name: Fail if no bot data to backup
+  ansible.builtin.fail:
+    msg: "No bot data files found in {{ bot_dir }}/data - has the bot been deployed?"
+  when: bot_data_files.matched == 0
+
+- name: Create temporary staging directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: ".{{ bot_name | lower }}-backup"
+  register: staging_dir
+
+- name: Create base backup structure in staging
+  ansible.builtin.file:
+    path: "{{ staging_dir.path }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - data
+    - overrides
+    - logs
+
+- name: Create additional staging directories
+  ansible.builtin.file:
+    path: "{{ staging_dir.path }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ extra_backup_dirs | default([]) }}"
+  when: extra_backup_dirs is defined
+
+- name: Copy bot data files
+  ansible.builtin.copy:
+    src: "{{ item.path }}"
+    dest: "{{ staging_dir.path }}/data/{{ item.path | basename }}"
+    remote_src: true
+    mode: preserve
+  loop: "{{ bot_data_files.files }}"
+
+- name: Check if docker-compose override exists
+  ansible.builtin.stat:
+    path: "{{ bot_dir }}/docker-compose.override.yml"
+  register: compose_override
+
+- name: Copy docker-compose override
+  ansible.builtin.copy:
+    src: "{{ bot_dir }}/docker-compose.override.yml"
+    dest: "{{ staging_dir.path }}/overrides/docker-compose.override.yml"
+    remote_src: true
+    mode: preserve
+  when: compose_override.stat.exists
+
+- name: Check if ansible overrides exist
+  ansible.builtin.stat:
+    path: "ansible/host_vars/localhost/overrides.yml"
+  register: ansible_overrides
+
+- name: Copy ansible host_vars overrides
+  ansible.builtin.copy:
+    src: "ansible/host_vars/localhost/overrides.yml"
+    dest: "{{ staging_dir.path }}/overrides/overrides.yml"
+    remote_src: true
+    mode: preserve
+  when: ansible_overrides.stat.exists
+
+- name: Check if logs directory exists
+  ansible.builtin.stat:
+    path: "{{ bot_dir }}/logs"
+  register: logs_dir
+
+- name: Copy bot logs recursively
+  ansible.builtin.copy:
+    src: "{{ bot_dir }}/logs/"
+    dest: "{{ staging_dir.path }}/logs/"
+    remote_src: true
+    mode: preserve
+  when: logs_dir.stat.exists and logs_dir.stat.isdir

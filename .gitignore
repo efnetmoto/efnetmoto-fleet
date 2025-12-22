@@ -1,3 +1,7 @@
+# Bot backups
+backups/*
+!backups/README.md
+
 # Bot runtime data
 bots/*/data/*
 !bots/*/data/README.md

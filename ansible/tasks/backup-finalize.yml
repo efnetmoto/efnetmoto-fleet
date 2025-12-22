@@ -1,0 +1,47 @@
+---
+# Finalize backup - create tarball, cleanup, retention
+# Include this after all bot-specific backup tasks
+
+- name: Create backup tarball
+  community.general.archive:
+    path: "{{ staging_dir.path }}/*"
+    dest: "{{ backup_dir }}/{{ backup_filename }}"
+    format: gz
+    mode: '0600'
+
+- name: Get backup file info
+  ansible.builtin.stat:
+    path: "{{ backup_dir }}/{{ backup_filename }}"
+  register: backup_file
+
+- name: Display backup information
+  ansible.builtin.debug:
+    msg: |
+      Backup created successfully!
+      Bot: {{ bot_name }}
+      Location: {{ backup_dir }}/{{ backup_filename }}
+      Size: {{ (backup_file.stat.size / 1024 / 1024) | round(2) }} MB
+
+- name: Clean up staging directory
+  ansible.builtin.file:
+    path: "{{ staging_dir.path }}"
+    state: absent
+
+- name: Find old backups
+  ansible.builtin.find:
+    paths: "{{ backup_dir }}"
+    patterns: "{{ bot_name | lower }}-backup-*.tar.gz"
+    age: "{{ backup_retention_days }}d"
+  register: old_backups
+
+- name: Remove old backups
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_backups.files }}"
+  when: old_backups.files | length > 0
+
+- name: Display retention info
+  ansible.builtin.debug:
+    msg: "Removed {{ old_backups.files | length }} backup(s) older than {{ backup_retention_days }} days"
+  when: old_backups.files | length > 0
