@@ -6,9 +6,13 @@
   vars_files:
     - ansible/group_vars/all.yml
     - ansible/host_vars/localhost/pompone.yml
-    - ansible/host_vars/localhost/overrides.yml
 
   tasks:
+
+    - name: Load local override vars if present
+      ansible.builtin.include_vars:
+        file: ansible/host_vars/localhost/overrides.yml
+      when: ansible.builtin.stat(path='ansible/host_vars/localhost/overrides.yml').stat.exists
 
     - name: Run common tasks
       ansible.builtin.import_tasks: ansible/tasks/common.yml

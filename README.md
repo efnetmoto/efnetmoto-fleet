@@ -91,8 +91,14 @@ For each bot you want to deploy:
 1. Review bot-specific variables in `ansible/host_vars/localhost/<botname>.yml`
    and identify any you may wish to change.
 
-2. Edit the overrides file `ansible/host_vars/localhost/overrides.yml` with any
-   local overrides you wish to make
+2. If you wish to change any, copy the overrrides example file:
+
+   ```bash
+   cp ansible/host_vars/localhosts/overrides.yml.example ansible/host_vars/localhost/overrides.yml
+   ```
+
+3. Edit the overrides file `ansible/host_vars/localhost/overrides.yml` with any
+   local overrides you wish to make.  This file is ignored by git and won't be checked in.
 
 ### Deploy Bots
 
