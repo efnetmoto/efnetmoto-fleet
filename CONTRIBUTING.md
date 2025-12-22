@@ -137,12 +137,17 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
   vars_files:
     - ansible/group_vars/all.yml
     - ansible/host_vars/localhost/botname.yml
-    - ansible/host_vars/localhost/overrides.yml
   
   tasks:
-    - import_tasks: ansible/tasks/common.yml
+    - name: Load local override vars if present
+      ansible.builtin.include_vars:
+        file: ansible/host_vars/localhost/overrides.yml
+      when: ansible.builtin.stat(path='ansible/host_vars/localhost/overrides.yml').stat.exists
 
-    - name: Descriptive task names
+    - name: Run common tasks
+      ansible.builtin.import_tasks: ansible/tasks/deploy-common.yml
+
+   - name: Descriptive task names
 ```
 
 ### Docker Compose Guidelines

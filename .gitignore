@@ -18,7 +18,8 @@ bots/*/pisg-config/pisg.cfg
 # Environment files
 bots/*/.env
 
-# Docker compose overrides
+# Overrides files
+ansible/host_vars/localhost/overrides.yml
 bots/*/docker-compose.override.yml
 
 # Ansible
