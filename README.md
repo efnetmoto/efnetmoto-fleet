@@ -175,7 +175,8 @@ and `.chattr handle +n` to set an owner.
 
 ```bash
 # Start the bot
-ansible-playbook -K deploy-pompone.yml
+# Ansible needs privilege escalation, so we have it ask for our sudo password
+ansible-playbook --ask-become-pass deploy-pompone.yml
 
 # Watch the logs
 docker compose -f bots/Pompone/docker-compose.yml logs -f pompone
@@ -249,7 +250,7 @@ If you see "port already in use" errors:
 3. **Redeploy:**
 
    ```bash
-   ansible-playbook deploy-<botname>.yml
+   ansible-playbook --ask-become-pass deploy-<botname>.yml
    ```
 
 ### Container Won't Start
@@ -279,7 +280,7 @@ If changes to `ansible/host_vars/localhost/<botname>.yml` aren't taking effect:
 1. **Redeploy** to regenerate configs:
 
    ```bash
-   ansible-playbook deploy-<botname>.yml
+   ansible-playbook --ask-become-pass deploy-<botname>.yml
    ```
 
 2. **Restart containers** to pick up new .env values:
