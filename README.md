@@ -1,4 +1,4 @@
-# Eggdrop Fleet
+# EFNet Moto Fleet
 
 Dockerized deployment infrastructure for EFNet #motorcycles Eggdrop IRC bots.
 This repository uses Docker Compose and Ansible to manage bot deployments with their unique service dependencies.
@@ -74,8 +74,8 @@ Each bot's `docker-compose.yml` references these service definitions via build c
 On a fresh host, clone the repository and run the setup script:
 
 ```bash
-git clone <repository-url> eggdrop-fleet
-cd eggdrop-fleet
+git clone git@github.com:efnetmoto/efnetmoto-fleet.git efnetmoto-fleet
+cd efnetmoto-fleet
 ./setup.sh
 ```
 
@@ -175,7 +175,7 @@ and `.chattr handle +n` to set an owner.
 
 ```bash
 # Start the bot
-ansible-playbook deploy-pompone.yml
+ansible-playbook -K deploy-pompone.yml
 
 # Watch the logs
 docker compose -f bots/Pompone/docker-compose.yml logs -f pompone
