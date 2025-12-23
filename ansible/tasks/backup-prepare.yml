@@ -1,6 +1,6 @@
 ---
 # Prepare backup - Create staging directories and copy common files
-# Bot-specific playbooks should include this and add custom tasks in between
+# Bot-specific playbooks should include this and add custom tasks after this is included
 
 - name: Check if bot has runtime data to backup
   ansible.builtin.find:

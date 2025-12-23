@@ -1,0 +1,23 @@
+---
+# Validate that an optional artifact restored correctly
+#
+# Required vars:
+#   backup_stat   - result of a stat against the artifact in staging
+#   restore_path  - destination path that should exist after restore
+#   artifact_name - human-readable name for error messages
+
+- name: Check restored exists - {{ artifact_name }}
+  ansible.builtin.stat:
+    path: "{{ restore_path }}"
+  register: restore_stat
+  when: backup_stat.stat.exists
+
+- name: Fail if did not restore - {{ artifact_name }}
+  ansible.builtin.fail:
+    msg: >
+      Restore completed, but {{ artifact_name }} did not restore as expected.
+      Aborting cleanup to allow inspection.
+  when:
+    - backup_stat.stat.exists
+    - restore_stat is defined
+    - not restore_stat.stat.exists

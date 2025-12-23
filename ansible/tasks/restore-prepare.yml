@@ -1,0 +1,71 @@
+---
+# Prepare restore - Find and extract the backup to a staging directory for restoration
+# Bot-specific playbooks should include this and add custom tasks after this is included
+
+- name: Validate the supplied backup archive
+  ansible.builtin.stat:
+    path: "{{ backup_dir }}/{{ archive_file | basename }}"
+    get_mime: true
+  register: archive_file_stat
+
+- name: Fail if the archive filename or type is invalid
+  ansible.builtin.fail:
+    msg: >
+      Invalid backup archive '{{ archive_file | basename }}'.
+      Expected filename format:
+      {{ bot_name | lower }}-backup-YYYY-MM-DD.tar.gz
+      and MIME type application/gzip.
+      Detected MIME type: {{ archive_file_stat.stat.mimetype | default('unknown') }}.
+  when: (not (archive_file | basename is
+              match('^' ~ (bot_name | lower) ~ '-backup-[0-9]{4}-[0-9]{2}-[0-9]{2}\\.tar\\.gz$')))
+        or (archive_file_stat.stat.mimetype != 'application/gzip')
+
+- name: Create temporary staging directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: ".{{ bot_name | lower }}-restore"
+  register: staging_dir
+
+- name: Extract the archive into the staging directory
+  ansible.builtin.unarchive:
+    src: "{{ archive_file_stat.stat.path }}"
+    dest: "{{ staging_dir.path }}"
+
+- name: Restore bot data files
+  ansible.builtin.copy:
+    src: "{{ staging_dir.path }}/data/"
+    dest: "{{ bot_dir }}/data/"
+    mode: preserve
+    remote_src: true
+
+- name: Check if docker-compose override exists
+  ansible.builtin.stat:
+    path: "{{ staging_dir }}/overrides/docker-compose.override.yml"
+  register: compose_override
+
+- name: Restore docker-compose override
+  ansible.builtin.copy:
+    src: "{{ compose_override.stat.path }}"
+    dest: "{{ bot_dir }}/docker-compose.override.yml"
+    mode: preserve
+    remote_src: true
+  when: compose_override.stat.exists
+
+- name: Check if ansible overrides exist
+  ansible.builtin.stat:
+    path: "{{ staging_dir.path }}/overrides/overrides.yml"
+  register: ansible_overrides
+
+- name: Restore ansible overrides file
+  ansible.builtin.copy:
+    src: "{{ ansible_overrides.stat.path }}"
+    dest: "ansible/host_vars/localhost/overrides.yml"
+    mode: preserve
+    remote_src: true
+
+- name: Restore bot logs
+  ansible.builtin.copy:
+    src: "{{ staging_dir.path }}/logs/"
+    dest: "{{ bot_dir }}/logs/"
+    mode: preserve
+    remote_src: true

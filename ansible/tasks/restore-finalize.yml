@@ -1,0 +1,35 @@
+---
+# Finalize restore - Validate & cleanup
+# Include this after all bot-specific restore tasks
+
+- name: Validate restored data directory contains the right files
+  ansible.builtin.find:
+    paths: "{{ bot_dir }}/data"
+    patterns: "*.user,*.chan,*.notes"
+  register: restored_data
+
+- name: Fail if restored data directory does not contain the right files
+  ansible.builtin.fail:
+    msg: >
+      Restore completed, but no data files were restored.
+      Aborting cleanup to allow inspection.
+  when: restored_data.matched == 0
+
+- name: Validate restored docker-compose override exists
+  ansible.builtin.include_tasks: ansible/tasks/restore-validate-exists.yml
+  vars:
+    backup_stat: "{{ compose_override }}"
+    restore_path: "{{ bot_dir }}/docker-compose.override.yml"
+    artifact_name: "docker-compose override"
+
+- name: Validate ansible overrides restore
+  ansible.builtin.include_tasks: ansible/tasks/restore-validate-exists.yml
+  vars:
+    backup_stat: "{{ ansible_overrides }}"
+    restore_path: "ansible/host_vars/localhost/overrides.yml"
+    artifact_name: "ansible overrides file"
+
+- name: Clean up staging directory
+  ansible.builtin.file:
+    path: "{{ staging_dir.path }}"
+    state: absent
