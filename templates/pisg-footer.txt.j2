@@ -1,0 +1,13 @@
+<!-- BEGIN ARCHIVE LINKS -->
+{% if sorted_years is defined and sorted_years | length > 0 %}
+<div align="center">
+  Previous Years' Stats:<br />
+  <a href="/">{{ ansible_date_time.year }}</a> | 
+  {%- for year in sorted_years -%}
+  {%- if loop.first %} {% endif -%}
+  <a href="/{{ year }}/">{{ year }}</a>
+  {%- if not loop.last %} | {% endif -%}
+  {%- endfor %}
+</div>
+{% endif %}
+<!-- END ARCHIVE LINKS -->

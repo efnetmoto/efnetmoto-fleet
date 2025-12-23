@@ -27,7 +27,6 @@
         src: templates/pisg.cfg.j2
         dest: "bots/Pompone/pisg-config/pisg.cfg"
         mode: "0644"
-      become: true
       when: pisg_enabled | default(false)
 
     - name: Check for required pisg static config files
@@ -50,6 +49,13 @@
       loop_control:
         label: "{{ item.item }}"
 
+    - name: Generate pisg footer from template
+      ansible.builtin.template:
+        src: templates/pisg-footer.txt.j2
+        dest: "bots/Pompone/pisg-config/footer.txt"
+        mode: "0644"
+      when: pisg_enabled | default(false)
+
     - name: Generate .env file with port configuration
       ansible.builtin.copy:
         content: |
@@ -61,6 +67,20 @@
           {% endfor %}
         dest: "bots/Pompone/.env"
         mode: '0600'
+
+    - name: Create annual stats rotation cron job
+      ansible.builtin.cron:
+        name: "Annual stats rotation"
+        user: "{{ ansible_user_id }}"
+        job: >
+          /usr/bin/env ansible-playbook
+          {{ playbook_dir }}/rotate-pompone-pisg.yml
+          >> {{ playbook_dir }}/bots/Pompone/logs/stats_rotation.log 2>&1
+        minute: "30"
+        hour: "0"
+        day: "1"
+        month: "1"
+      when: pisg_enabled | default(false)
 
     - name: Deploy Pompone with docker-compose
       community.docker.docker_compose_v2:

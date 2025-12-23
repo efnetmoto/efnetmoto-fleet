@@ -16,6 +16,7 @@
     backup_filename: "pompone-backup-{{ timestamp }}.tar.gz"
     # Pompone-specific: add directories for pisg
     extra_backup_dirs:
+      - archives
       - html
       - pisg-cache
       - pisg-config
@@ -81,6 +82,24 @@
         mode: '0644'
       loop: "{{ pisg_config_files.files }}"
       when: pisg_config_files.matched > 0
+
+    - name: Collect the log archives
+      ansible.builtin.find:
+        paths: "{{ bot_dir }}/archives"
+        file_type: file
+        pattern: "*.tar.gz"
+        excludes:
+          - README.md
+      register: archives_files
+
+    - name: Copy log archives
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ staging_dir.path }}/archives/{{ item.path | basename }}"
+        remote_src: true
+        mode: '0644'
+      loop: "{{ archives_files.files }}"
+      when: archives_files.matched > 0
 
     # Phase 3: Finalize backup
     - name: Finalize backup
