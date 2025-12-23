@@ -29,7 +29,7 @@
     # Phase 2: Pompone-specific pisg data
     - name: Check if HTML output exists in backup
       ansible.builtin.stat:
-        path: "{{ staging_dir }}/html"
+        path: "{{ staging_dir.path }}/html"
       register: html_output_stat
 
     - name: Restore the HTML output tree
