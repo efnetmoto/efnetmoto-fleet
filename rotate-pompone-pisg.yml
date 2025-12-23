@@ -1,0 +1,99 @@
+---
+- name: Rotate PISG Stats and Logs for Pompone
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/host_vars/localhost/pompone.yml
+
+  vars:
+    bot_name: "Pompone"
+    bot_dir: "bots/Pompone"
+    # Year to archive (defaults to last year)
+    archive_year: "{{ ansible_date_time.year | int - 1 }}"
+
+  tasks:
+    - name: Check for local overrides file
+      ansible.builtin.stat:
+        path: ansible/host_vars/localhost/overrides.yml
+      register: overrides_stat
+
+    - name: Load local override vars if present
+      ansible.builtin.include_vars:
+        file: ansible/host_vars/localhost/overrides.yml
+      when: overrides_stat.stat.exists
+
+    - name: Display rotation information
+      ansible.builtin.debug:
+        msg: "Starting PISG rotation for year {{ archive_year }}"
+
+    - name: Check if channel logs directory exists
+      ansible.builtin.stat:
+        path: "{{ bot_dir }}/logs/channels"
+      register: channels_log_dir
+
+    - name: Fail if no logs directory
+      ansible.builtin.fail:
+        msg: "Channel logs directory not found at {{ bot_dir }}/logs/channels"
+      when: not channels_log_dir.stat.exists
+
+    - name: Find channel logs for the archive year
+      ansible.builtin.find:
+        paths: "{{ bot_dir }}/logs/channels"
+        patterns: "*.{{ archive_year }}*"
+      register: year_logs
+
+    - name: Archive channel logs for the year
+      community.general.archive:
+        path: "{{ year_logs.files | map(attribute='path') | list }}"
+        dest: "{{ bot_dir }}/archives/logs-{{ archive_year }}.tar.gz"
+        format: gz
+        mode: '0644'
+      when: year_logs.matched > 0
+
+    - name: Remove archived log files
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ year_logs.files }}"
+      when: year_logs.matched > 0
+
+    - name: Create year-specific HTML directory
+      ansible.builtin.file:
+        path: "{{ bot_dir }}/html/{{ archive_year }}"
+        state: directory
+        mode: '0755'
+
+    - name: Find current HTML and PNG files (excluding year directories and README)
+      ansible.builtin.find:
+        paths: "{{ bot_dir }}/html"
+        file_type: file
+        patterns: "*.png,*.html"
+        excludes:
+          - README.md
+      register: current_html
+
+    - name: Move current HTML and PNG to year directory
+      ansible.builtin.command:
+        cmd: "mv {{ item.path }} {{ bot_dir }}/html/{{ archive_year }}/"
+      loop: "{{ current_html.files }}"
+      when: current_html.matched > 0
+      changed_when: true
+
+    - name: Generate new footer
+      ansible.builtin.include_tasks: ansible/tasks/generate-pisg-footer.yml
+
+    - name: Display rotation summary
+      ansible.builtin.debug:
+        msg: |
+          PISG rotation completed for {{ archive_year }}!
+
+          Actions taken:
+          - Archived {{ year_logs.matched }} log file(s) to archives/logs-{{ archive_year }}.tar.gz
+          - Moved {{ current_html.matched }} HTML file(s) to html/{{ archive_year }}/
+          - Updated footer.txt with links to {{ sorted_years | length }} year(s) of archives
+
+          Next steps:
+          - PISG will regenerate stats for current year on next run
+          - Previous years accessible at: /{{ archive_year }}/

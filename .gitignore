@@ -18,6 +18,11 @@ bots/*/html/*
 
 # Pisg generated config (template-generated, not static)
 bots/*/pisg-config/pisg.cfg
+bots/*/pisg-config/footer.txt
+
+# Pisg archives
+bots/*archives/*
+!bots/*/archives/README.md
 
 # Environment files
 bots/*/.env
