@@ -1,0 +1,92 @@
+---
+- name: Restore Pompone Bot Data
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: archive_file
+      prompt: "Provide the archive filename to be restored:"
+      private: false
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/host_vars/localhost/pompone.yml
+
+  vars:
+    bot_name: "Pompone"
+    bot_dir: "bots/Pompone"
+    backup_dir: "backups"
+    extra_restore_dirs:
+      - html
+      - pisg-cache
+      - pisg-config
+
+  tasks:
+    # Phase 1: Common restore preparation and base data
+    - name: Execute common restore tasks
+      ansible.builtin.include_tasks: ansible/tasks/restore-prepare.yml
+
+    # Phase 2: Pompone-specific pisg data
+    - name: Check if HTML output exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir }}/html"
+      register: html_output_stat
+
+    - name: Restore the HTML output tree
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/html/"
+        dest: "{{ bot_dir }}/html"
+        mode: preserve
+        remote_src: true
+      when: html_output_stat.stat.exists
+
+    - name: Check if pisg-cache exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir }}/pisg-cache"
+      register: pisg_cache_stat
+
+    - name: Restore pisg-cache files
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/pisg-cache/"
+        dest: "{{ bot_dir }}/pisg-cache/"
+        mode: preserve
+        remote_src: true
+      when: pisg_cache_stat.stat.exists
+
+    - name: Check if pisg-config exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir }}/pisg-config"
+      register: pisg_config_stat
+
+    - name: Restore pisg config customizations
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/pisg-config/"
+        dest: "{{ bot_dir }}/pisg-config/"
+        mode: preserve
+        remote_src: true
+      when: pisg_config_stat.stat.exists
+
+    # Phase 3: Validate & finalize restore
+    - name: Validate HTML restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/html"
+        restore_path: "{{ bot_dir }}/html"
+        artifact_name: "HTML output"
+
+    - name: Validate pisg-cache restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/pisg-cache"
+        restore_path: "{{ bot_dir }}/pisg-cache"
+        artifact_name: "pisg cache"
+
+    - name: Validate pisg-config restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/pisg-config"
+        restore_path: "{{ bot_dir }}/pisg-config"
+        artifact_name: "pisg configuration"
+
+    - name: Finalize restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-finalize.yml

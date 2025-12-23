@@ -71,9 +71,66 @@ pompone-backup-YYYY-MM-DD.tar.gz
 └── pisg-config/             # PISG customizations (with the exception of checked in files)
 ```
 
+## Restoring a Backup
+
+Backups are restored using a structured restore pipeline that validates the archive
+and restored contents before cleanup.
+This helps prevent accidental or partial restores.
+
+### Basic Restore Command
+
+To restore a backup, run the restore playbook for the bot and specify the archive file using `--extra-vars`:
+
+```bash
+ansible-playbook restore-<botname>.yml --extra-vars "archive_file=backups/<botname>-backup-2023-12-08.tar.gz"
+```
+
+### Supplying the Archive File
+
+- The `archive_file` variable specifies which backup archive to restore.
+- If `archive_file` is **not provided**, Ansible will prompt for it interactively via `vars_prompt`.
+
+Using `--extra-vars` is recommended for scripted or repeatable restores.
+
+## Restore Validation and Safety
+
+The restore pipeline performs multiple validation steps:
+
+### Archive Validation (prepare phase)
+
+Before restoring anything, the pipeline validates that:
+
+- The archive filename matches the expected format:
+
+    ```text
+    <botname>-backup-YYYY-MM-DD.tar.gz
+    ```
+
+- The bot name embedded in the filename matches the target bot
+- The archive MIME type indicates a gzip-compressed file
+
+### Restore Validation (final phase)
+
+After restoring files, the pipeline validates that:
+
+- Required directories (such as `data/` and `logs/`) were restored
+- Optional artifacts are restored **if and only if** they existed in the backup
+  - docker-compose override
+  - ansible overrides
+- Directory-based artifacts are validated to ensure every file present in the backup exists in the restore destination
+
+If any validation fails:
+
+- The restore process stops immediately
+- The staging directory is preserved for inspection
+- No cleanup is performed
+
+This ensures restore failures are visible and diagnosable.
+
 ## Important Notes
 
 - All backup files in this directory are gitignored
 - Backups may contain sensitive data (user passwords, channel keys)
 - Store backups securely with appropriate permissions (0600)
 - Test your restore procedure periodically!
+- Restore operations are intentionally strict to prevent silent data loss

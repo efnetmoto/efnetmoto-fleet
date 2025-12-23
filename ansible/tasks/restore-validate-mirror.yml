@@ -1,0 +1,38 @@
+---
+# Validate that all files from a staging directory were restored
+#
+# Required vars:
+#   staging_path   - source directory in staging
+#   restore_path   - destination directory after restore
+#   artifact_name  - human-readable name for error messages
+
+- name: Collect files from staging {{ artifact_name }}
+  ansible.builtin.find:
+    paths: "{{ staging_path }}"
+    file_type: file
+    recurse: true
+  register: staging_files
+
+- name: Validate restored files for {{ artifact_name }}
+  ansible.builtin.stat:
+    path: >-
+      {{
+        restore_path ~ '/' ~
+        (item.path | regex_replace('^' ~ staging_path ~ '/', ''))
+      }}
+  register: restore_stats
+  loop: "{{ staging_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Fail if any files did not restore - {{ artifact_name }}
+  ansible.builtin.fail:
+    msg: >
+      Restore completed, but one or more {{ artifact_name }} files
+      were not restored correctly. Missing file:
+      {{
+        item.item.path
+        | regex_replace('^' ~ staging_path ~ '/', restore_path ~ '/')
+      }}
+  when: not item.stat.exists
+  loop: "{{ restore_stats.results }}"
