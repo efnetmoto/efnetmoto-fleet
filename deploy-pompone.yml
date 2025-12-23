@@ -100,3 +100,6 @@
 
           To connect via telnet (if configured):
             telnet localhost 2020
+
+          You must open `{{ dcc_port }}` on your firewall so the bots can
+          connect to each other.

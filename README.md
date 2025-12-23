@@ -27,8 +27,10 @@ efnetmoto-fleet/
 │   │       ├── overrides.yml   # Local overrides for bot-specific variables
 │   │       ├── pompone.yml
 │   │       └── xerokewl.yml
-│   ├── tasks/
-│   │   ├── common.yml          # Common tasks uses in bot-specific playbooks
+│   ├── tasks/                  # Common tasks uses in bot-specific playbooks
+│   │   ├── deploy-common.yml
+│   │   ├── backup-prepare.yml
+│   │   ├── backup-finalize.yml
 │   │   └── ...
 │   └── requirements.yml        # Collections and roles installed by ansible-galaxy
 └── deploy-*.yml                # Ansible playbooks
@@ -107,6 +109,11 @@ Deploy a single bot:
 ```bash
 ansible-playbook deploy-pompone.yml
 ```
+
+#### Post-deploy requirements
+
+- Configure firewall to allow traffic to `dcc_port`
+- Join the partyline on the other bots and add the new bot's information
 
 ### Bot-Specific Notes
 
