@@ -8,6 +8,7 @@ set admin "{{ bot_admin }}"
 set network "{{ irc_network }}"
 set timezone "{{ ansible_date_time.tz }}"
 set offset "{{ timezone_offset }}"
+set nat-ip "{{ nat_ip }}"
 
 set prefer-ipv6 {{ prefer_ipv6 | default(1) }}
 

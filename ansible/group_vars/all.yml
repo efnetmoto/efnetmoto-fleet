@@ -41,6 +41,7 @@ channels:
     flags: ""
 
 # Common DCC Settings
+nat_ip: "{{ ansible_default_ipv4.address }}"
 dcc_portrange_start: 2010
 dcc_portrange_end: 2019
 
