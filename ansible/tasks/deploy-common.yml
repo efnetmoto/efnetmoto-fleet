@@ -31,7 +31,6 @@
     src: templates/eggdrop.conf.j2
     dest: "bots/{{ bot_nick }}/data/eggdrop.conf"
     mode: "0640"
-  become: true
 
 - name: Create daily backup cron job
   ansible.builtin.cron:
