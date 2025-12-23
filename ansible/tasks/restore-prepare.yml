@@ -62,6 +62,7 @@
     dest: "ansible/host_vars/localhost/overrides.yml"
     mode: preserve
     remote_src: true
+  when: ansible_overrides.stat.exists
 
 - name: Restore bot logs
   ansible.builtin.copy:
