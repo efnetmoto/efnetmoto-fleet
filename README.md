@@ -16,6 +16,7 @@ efnetmoto-fleet/
 │   └── XeroKewl/
 ├── services/                   # Shared service Dockerfiles
 │   ├── pisg/
+│   ├── nginx/
 │   └── ...
 ├── shared/                     # Common TCL scripts
 │   └── tcl-scripts/
@@ -59,6 +60,7 @@ Ansible renders these templates with bot-specific variables and writes the final
 The `services/` directory contains Dockerfiles for all services used across bots:
 
 - `pisg/` - IRC log analyzer (used by Pompone)
+- `nginx/` - Custom nginx service to resolve UID mismatch between eggdrop/pisg/nginx containers
 - Additional services as needed
 
 Each bot's `docker-compose.yml` references these service definitions via build context.
