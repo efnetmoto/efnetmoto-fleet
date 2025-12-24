@@ -10,6 +10,9 @@
     path: "{{ item }}"
     state: directory
     mode: "0775"
+    owner: "100"  # aligns with container user
+    group: "{{ ansible_user_gid }}"
+  become: true
   loop: "{{ runtime_dirs }}"
 
 - name: Check if userfile exists (first run check)
