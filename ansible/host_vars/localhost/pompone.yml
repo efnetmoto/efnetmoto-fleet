@@ -30,11 +30,8 @@ environment_variables:
 
 # Runtime directories to create
 runtime_dirs:
-  - "bots/Pompone/data"
   - "bots/Pompone/logs/bot"
   - "bots/Pompone/logs/channels"
-  - "bots/Pompone/scripts"
-  - "bots/Pompone/text"
   - "bots/Pompone/pisg-cache"
   - "bots/Pompone/pisg-config"
   - "bots/Pompone/html"
