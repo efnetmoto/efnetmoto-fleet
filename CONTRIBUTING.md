@@ -131,7 +131,7 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
 **Playbook structure:**
 
 ```yaml
-- name: Descriptive playbook name
+- name: Deploy <botname> Eggdrop bot
   hosts: localhost
   connection: local
   
@@ -141,16 +141,26 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
     - ansible/host_vars/localhost/botname.yml
   
   tasks:
+
+    # Phase 1: Common deploy preparation tasks and dependency resolution
+    - name: Check for local overrides file
+      ansible.builtin.stat:
+        path: ansible/host_vars/localhost/overrides.yml
+      register: overrides_stat
+
     - name: Load local override vars if present
       ansible.builtin.include_vars:
         file: ansible/host_vars/localhost/overrides.yml
-      when: ansible.builtin.stat(path='ansible/host_vars/localhost/overrides.yml').stat.exists
+      when: overrides_stat.stat.exists
 
-    - name: Run common tasks
-      ansible.builtin.import_tasks: ansible/tasks/deploy-common.yml
+    - name: Run prepare tasks
+      ansible.builtin.import_tasks: ansible/tasks/deploy-prepare.yml
 
-   - name: Descriptive task names
-```
+    # Phase 2: <botname>-specific tasks.
+
+    # Phase 3: Finalize and validate deployment and present user feedback
+    - name: Run finalize tasks
+      ansible.builtin.import_tasks: ansible/tasks/deploy-finalize.yml```
 
 ### Docker Compose Guidelines
 

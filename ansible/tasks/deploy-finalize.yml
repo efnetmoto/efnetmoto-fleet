@@ -1,0 +1,72 @@
+---
+# Common deployment finalization and validation tasks for all bots
+
+- name: Deploy bot with docker-compose ({{ bot_nick }})
+  community.docker.docker_compose_v2:
+    project_src: "bots/{{ bot_nick }}"
+    state: present
+
+- name: Extract IRC ports for firewall configuration ({{ bot_nick }})
+  ansible.builtin.set_fact:
+    irc_ports: >-
+      {{
+        irc_servers
+        | map(attribute='port')
+        | map('regex_replace', '^\\+', '')
+        | map('int')
+        | unique
+        | sort
+        | list
+      }}
+
+- name: Build next steps message ({{ bot_nick }})
+  ansible.builtin.set_fact:
+    next_steps_msg: >-
+      {{
+        [
+          "=" * 72,
+          bot_nick ~ " deployment complete!",
+          "=" * 72,
+          "",
+          "FIREWALL CONFIGURATION REQUIRED:",
+          "-" * 33,
+          "You must configure your firewall to allow the following:",
+          "",
+          "INBOUND:",
+          "  - Port " ~ environment_variables.dcc_port ~
+          " (DCC - botnet communication)"
+        ]
+        + (
+          [
+            "  - Port " ~ environment_variables.stats_port ~
+            " (HTTP - PISG statistics)"
+          ]
+          if pisg_enabled | default(false) else []
+        )
+        + [
+          "",
+          "OUTBOUND:",
+          "  - Ports " ~ (irc_ports | map('string') | join(', ')) ~ " (IRC servers)",
+          "  - Port 22 (SSH - for off-site backups)",
+          "",
+          "MANAGEMENT COMMANDS:",
+          "-" * 20,
+          "View logs:",
+          "  cd bots/" ~ bot_nick ~ " && docker compose logs -f",
+          "",
+          "Check status:",
+          "  cd bots/" ~ bot_nick ~ " && docker compose ps",
+          "",
+          "NEXT STEPS:",
+          "-" * 11,
+          "1. Configure firewall (see above)",
+          "2. Link to botnet (see README.md for Post-deploy requirements)",
+          "3. Test backup: ansible-playbook backup-" ~ bot_nick ~ ".yml",
+          "",
+          "=" * 72
+        ]
+      }}
+
+- name: Display admin next steps ({{ bot_nick }})
+  ansible.builtin.debug:
+    msg: "{{ next_steps_msg }}"
