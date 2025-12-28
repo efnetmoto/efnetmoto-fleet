@@ -1,0 +1,36 @@
+---
+- name: Backup Decisis Bot Data
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/host_vars/localhost/decisis.yml
+
+  vars:
+    bot_name: "Decisis"
+    bot_dir: "bots/Decisis"
+    backup_dir: "backups"
+    backup_retention_days: 30
+    timestamp: "{{ ansible_date_time.date }}"
+    backup_filename: "decisis-backup-{{ timestamp }}.tar.gz"
+    # Decisis-specific: add directory for seen
+    extra_backup_dirs:
+      - seen
+
+  tasks:
+    # Phase 1: Common backup preparation and base data
+    - name: Execute common backup tasks
+      ansible.builtin.include_tasks: ansible/tasks/backup-prepare.yml
+
+    # Phase 2: Decisis-specific data
+    - name: Copy seen database files
+      ansible.builtin.copy:
+        src: "{{ bot_dir }}/data/seen"
+        dest: "{{ staging_dir.path }}/seen"
+        remote_src: true
+        mode: preserve
+
+    # Phase 3: Finalize backup
+    - name: Finalize backup
+      ansible.builtin.include_tasks: ansible/tasks/backup-finalize.yml

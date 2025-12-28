@@ -99,5 +99,5 @@ echo
 echo "Next steps:"
 echo "  1. Review and customize bot variables in ansible/host_vars/localhost/"
 echo "  2. Deploy a bot:"
-echo "       ansible-playbook deploy-pompone.yml --ask-become-pass"
+echo "       ansible-playbook deploy-botname.yml --ask-become-pass"
 echo

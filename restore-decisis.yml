@@ -1,0 +1,50 @@
+---
+- name: Restore Decisis Bot Data
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: archive_file
+      prompt: "Provide the archive filename to be restored:"
+      private: false
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/host_vars/localhost/Decisis.yml
+
+  vars:
+    bot_name: "Decisis"
+    bot_dir: "bots/Decisis"
+    backup_dir: "backups"
+    extra_restore_dirs:
+      - seen
+
+  tasks:
+    # Phase 1: Common restore preparation and base data
+    - name: Execute common restore tasks
+      ansible.builtin.include_tasks: ansible/tasks/restore-prepare.yml
+
+    # Phase 2: Decisis-specific data
+    - name: Check if seen database exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir.path }}/seen"
+      register: seen_db_stat
+
+    - name: Restore the seen database files
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/seen/"
+        dest: "{{ bot_dir }}/data/seen/"
+        mode: preserve
+        remote_src: true
+      when: seen_db_stat.stat.exists
+
+    # Phase 3: Validate & finalize restore
+    - name: Validate Seen Database restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/seen"
+        restore_path: "{{ bot_dir }}/data/seen"
+        artifact_name: "Seen Database"
+
+    - name: Finalize restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-finalize.yml

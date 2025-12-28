@@ -11,7 +11,7 @@ Backups contain all variable/runtime data needed to restore a bot to a working s
 - Notes databases (.notes files)
 - Docker Compose overrides (if they exist)
 - Ansible variable overrides (if they exist)
-- PISG cache, customizations, and output
+- Bot-specific data (e.g. PISG cache, customizations, and output)
 - Eggdrop logs
 
 ## What's NOT Backed Up

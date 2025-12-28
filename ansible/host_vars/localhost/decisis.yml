@@ -1,5 +1,5 @@
 ---
-# Pompone-specific configuration
+# Decisis-specific configuration
 
 # Whether this project's Ansible playbooks should manage Docker on this host
 manage_docker: true
@@ -12,9 +12,9 @@ docker_users:
   - "{{ ansible_user_id }}"
 
 # Bot Identity
-bot_nick: "Pompone"
-bot_username: "pompone"
-bot_realname: "Motociclismo Paesano"
+bot_nick: "Decisis"
+bot_username: "decisis"
+bot_realname: "Amicus Curiae"
 bot_admin: "TedSki <email: tedski@efnetmoto.com>"
 bot_owner: "TedSki"
 
@@ -24,22 +24,13 @@ dcc_port: &dcc_port 2020
 # Docker compose environment variables
 environment_variables:
   dcc_port: *dcc_port
-  stats_port: 8080  # Stats HTTP Port (nginx)
-  cron_schedule: "{{ pisg_cron_schedule }}"
   tz: "America/Los_Angeles"
 
 # Runtime directories to create
 runtime_dirs:
-  - "bots/Pompone/data"
-  - "bots/Pompone/logs"
-  - "bots/Pompone/logs/bot"
-  - "bots/Pompone/logs/channels"
-  - "bots/Pompone/pisg-cache"
-  - "bots/Pompone/pisg-config"
-  - "bots/Pompone/html"
-
-# Separate log directories for pisg processing
-separate_log_dirs: true
+  - "bots/Decisis/data"
+  - "bots/Decisis/data/seen"
+  - "bots/Decisis/logs"
 
 # Scripts to load (relative to container paths)
 # (Scripts loaded from `scripts/` are Eggdrop-native and ship with the container)
@@ -49,14 +40,4 @@ bot_scripts:
   - "scripts/dccwhois.tcl"
   - "scripts/userinfo.tcl"
   - "scripts/quotepong.tcl"
-
-# PISG Configuration
-pisg_enabled: true
-pisg_cron_schedule: "@hourly"  # Hourly
-pisg_channels:
-  - name: "#motorcycles"
-    log_prefix: "motorcycles"
-    format: "eggdrop"
-    network: "Efnet"
-    maintainer: "Pompone"
-    output_file: "index.html"
+  - "scripts-shared/bseen1.4.2.tcl"

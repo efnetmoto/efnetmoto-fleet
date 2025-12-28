@@ -2,6 +2,12 @@
 
 This directory contains 3rd-party TCL Scripts that are used by one or more bots.
 
+## Script Index
+
+| Filename | Description |
+| --- | --- |
+| `bseen1.4.2.tcl` | Maintains database of seen and lastspoke for all channel users |
+
 ## Architecture
 
 Scripts in this directory are automatically mounted into each bot at
@@ -17,7 +23,7 @@ is done via the bot-specific ansible variables in `host_vars/`.
    ```yaml
    bot_scripts:
      - "scripts/alltools.tcl"
-     - "shared-scripts/newscript.tcl"  <-- this is the new script
+     - "scripts-shared/newscript.tcl"  <-- this is the new script
    ```
 
 1. Restart the bot(s)
