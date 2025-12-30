@@ -1,0 +1,19 @@
+---
+# SSH connection details for off-site backups
+# Automatically populated during deployment
+backup_ssh_public_keys:
+  decisis:
+    host: ''
+    path: ''
+    ssh_public_key: ''
+    user: ''
+  pompone:
+    host: ''
+    path: ''
+    ssh_public_key: ''
+    user: ''
+  xerokewl:
+    host: ''
+    path: ''
+    ssh_public_key: ''
+    user: ''

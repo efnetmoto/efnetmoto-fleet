@@ -5,6 +5,7 @@
 
   vars_files:
     - ansible/group_vars/all.yml
+    - ansible/group_vars/backup_ssh_keys.yml
     - ansible/host_vars/localhost/pompone.yml
 
   tasks:
@@ -82,24 +83,63 @@
         month: "1"
       when: pisg_enabled | default(false)
 
+    - name: Extract IRC ports for firewall configuration
+      ansible.builtin.set_fact:
+        irc_ports: "{{ irc_servers | map(attribute='port') | map('regex_replace', '^\\+', '') | unique | sort | list }}"
+
     - name: Deploy Pompone with docker-compose
       community.docker.docker_compose_v2:
         project_src: bots/Pompone
         state: present
 
+    - name: Build Pompone next steps message
+      ansible.builtin.set_fact:
+        pompone_next_steps: >-
+          {{
+            [
+              "=" * 72,
+              "Pompone deployment complete!",
+              "=" * 72,
+              "",
+              "FIREWALL CONFIGURATION REQUIRED:",
+              "-" * 33,
+              "You must configure your firewall to allow the following:",
+              "",
+              "INBOUND:",
+              "  - Port " ~ environment_variables.dcc_port ~
+              " (DCC - botnet communication)"
+            ]
+            + (
+              [
+                "  - Port " ~ environment_variables.stats_port ~
+                " (HTTP - PISG statistics)"
+              ]
+              if pisg_enabled | default(false) else []
+            )
+            + [
+              "",
+              "OUTBOUND:",
+              "  - Ports " ~ (irc_ports | join(', ')) ~ " (IRC servers)",
+              "  - Port 22 (SSH - for off-site backups)",
+              "",
+              "MANAGEMENT COMMANDS:",
+              "-" * 20,
+              "View logs:",
+              "  cd bots/Pompone && docker compose logs -f",
+              "",
+              "Check status:",
+              "  cd bots/Pompone && docker compose ps",
+              "",
+              "NEXT STEPS:",
+              "-" * 11,
+              "1. Configure firewall (see above)",
+              "2. Link to botnet (see README.md for Post-deploy requirements)",
+              "3. Test backup: ansible-playbook backup-pompone.yml",
+              "",
+              "=" * 72
+            ]
+          }}
+
     - name: Display next steps
       ansible.builtin.debug:
-        msg: |
-          Pompone deployment complete!
-
-          To view logs:
-            docker compose -f bots/Pompone/docker-compose.yml logs -f
-
-          To check status:
-            docker compose -f bots/Pompone/docker-compose.yml ps
-
-          To connect via telnet (if configured):
-            telnet localhost 2020
-
-          You must open `{{ dcc_port }}` on your firewall so the bots can
-          connect to each other.
+        msg: "{{ pompone_next_steps }}"

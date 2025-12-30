@@ -109,8 +109,9 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
 **Variable precedence (lowest to highest):**
 
 1. `ansible/group_vars/all.yml` - Common to all bots
-2. `ansible/host_vars/localhost/botname.yml` - Bot-specific
-3. Command line `-e` flags - Overrides
+2. `ansible/group_vars/backup_ssh_keys.yml` - SSH Public Key inventory for offsite backups
+3. `ansible/host_vars/localhost/botname.yml` - Bot-specific
+4. Command line `-e` flags - Overrides
 
 **Use group_vars for:**
 
@@ -136,6 +137,7 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
   
   vars_files:
     - ansible/group_vars/all.yml
+    - ansible/group_vars/backup_ssh_keys.yml
     - ansible/host_vars/localhost/botname.yml
   
   tasks:
@@ -197,8 +199,9 @@ ansible-playbook deploy-pompone.yml --check
 ansible-playbook deploy-pompone.yml --ask-become-pass
 
 # Verify deployment
-docker-compose -f bots/Pompone/docker-compose.yml ps
-docker-compose -f bots/Pompone/docker-compose.yml logs
+cd bots/Pompone
+docker compose ps
+docker compose logs
 ```
 
 ### Git Workflow

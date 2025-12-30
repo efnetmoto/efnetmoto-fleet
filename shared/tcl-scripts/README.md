@@ -23,5 +23,6 @@ is done via the bot-specific ansible variables in `host_vars/`.
 1. Restart the bot(s)
 
    ```bash
-   docker compose -f bots/<botname>/docker-compose.yml restart
+   cd bots/<botname>
+   docker compose restart
    ```

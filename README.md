@@ -28,7 +28,7 @@ efnetmoto-fleet/
 │   │       ├── overrides.yml   # Local overrides for bot-specific variables
 │   │       ├── pompone.yml
 │   │       └── xerokewl.yml
-│   ├── tasks/                  # Common tasks uses in bot-specific playbooks
+│   ├── tasks/                  # Common tasks used in bot-specific playbooks
 │   │   ├── deploy-common.yml
 │   │   ├── backup-prepare.yml
 │   │   ├── backup-finalize.yml
@@ -73,49 +73,52 @@ Each bot's `docker-compose.yml` references these service definitions via build c
 
 ## Quick Start
 
-### Initial Setup
+For complete deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
-On a fresh host, clone the repository and run the setup script:
+**Brief overview for experienced admins:**
 
 ```bash
-git clone git@github.com:efnetmoto/efnetmoto-fleet.git efnetmoto-fleet
+# 1. Initial setup
+git clone git@github.com:efnetmoto/efnetmoto-fleet.git
 cd efnetmoto-fleet
 ./setup.sh
+
+# 2. Configure (optional - review ansible/host_vars/localhost/<botname>.yml)
+cp ansible/host_vars/localhost/overrides.yml.example ansible/host_vars/localhost/overrides.yml
+# Edit overrides.yml with your changes
+
+# 3. Deploy
+ansible-playbook deploy-<botname>.yml --ask-become-pass
+
+# 4. Post-deployment
+# - Configure firewall (ports shown in deployment output)
+# - Submit PR with SSH Public Keys for offsite backups
+# - Link to botnet (see section below)
+# - Test backups
 ```
 
-The setup script will install:
+### Botnet Linking
 
-- Ansible
-- Required Ansible collections
+If adding a new bot to the network, link it via DCC chat:
 
-### Configure Bots
-
-For each bot you want to deploy:
-
-1. Review bot-specific variables in `ansible/host_vars/localhost/<botname>.yml`
-   and identify any you may wish to change.
-
-2. If you wish to change any, copy the overrrides example file:
-
-   ```bash
-   cp ansible/host_vars/localhosts/overrides.yml.example ansible/host_vars/localhost/overrides.yml
-   ```
-
-3. Edit the overrides file `ansible/host_vars/localhost/overrides.yml` with any
-   local overrides you wish to make.  This file is ignored by git and won't be checked in.
-
-### Deploy Bots
-
-Deploy a single bot:
-
-```bash
-ansible-playbook deploy-pompone.yml
+**On an existing bot:**
+```
+.+bot <newbotname> <address>:<port>
+.chattr <newbotname> +hp
+.+host <newbotname> <hostname-or-ip>
+.link <newbotname>
 ```
 
-#### Post-deploy requirements
+**On the new bot:**
+```
+.link <existingbot>
+```
 
-- Configure firewall to allow traffic to `dcc_port`
-- Join the partyline on the other bots and add the new bot's information
+**Verify:**
+```
+.bots        # Shows all linked bots
+.whom *      # Shows users across all bots
+```
 
 ### Bot-Specific Notes
 
@@ -128,28 +131,34 @@ ansible-playbook deploy-pompone.yml
 
 ## Management
 
+> **Note:** Docker Compose commands should be run from the bot's directory to ensure `docker-compose.override.yml` files are automatically loaded for local customizations.
+
 ### Check Bot Status
 
 ```bash
-docker compose -f bots/<botname>/docker-compose.yml ps
+cd bots/<botname>
+docker compose ps
 ```
 
 ### View Logs
 
 ```bash
-docker compose -f bots/<botname>/docker-compose.yml logs -f
+cd bots/<botname>
+docker compose logs -f
 ```
 
 ### Restart a Bot
 
 ```bash
-docker compose -f bots/<botname>/docker-compose.yml restart
+cd bots/<botname>
+docker compose restart
 ```
 
 ### Stop a Bot
 
 ```bash
-docker compose -f bots/<botname>/docker-compose.yml down
+cd bots/<botname>
+docker compose down
 ```
 
 ### Update a Bot
@@ -158,11 +167,6 @@ docker compose -f bots/<botname>/docker-compose.yml down
 git pull
 ansible-playbook deploy-<botname>.yml
 ```
-
-## Security Notes
-
-- Review firewall rules for IRC ports
-- Secrets must use Ansible Vault
 
 ## Troubleshooting
 
@@ -185,44 +189,23 @@ and `.chattr handle +n` to set an owner.
 ```bash
 # Start the bot
 # Ansible needs privilege escalation, so we have it ask for our sudo password
-ansible-playbook --ask-become-pass deploy-pompone.yml
+ansible-playbook --ask-become-pass deploy-<botname>.yml
 
 # Watch the logs
-docker compose -f bots/Pompone/docker-compose.yml logs -f pompone
+cd bots/<botname>
+docker compose logs -f <botname>
 
 # Once connected to IRC, DCC chat to the bot and set yourself as owner
 # Then save the bot's configuration
 ```
-
-### Bot Won't Connect to IRC
-
-**Check logs:**
-
-```bash
-docker compose -f bots/<botname>/docker-compose.yml logs -f
-```
-
-**Common Issues:**
-
-- **"Can't resolve server"**: DNS issue or incorrect server in `ansible/group_vars/all.yml`
-- **Connection timeout**: Check firewall rules for outbound IRC ports (6667, 7000)
-- **"User/host not matched"**: Bot is connecting but not identified. Check userfile and hostmasks.
-- **Immediate disconnect**: Server may be banning the bot. Check for clone bots or K-lines.
-
-### Bot Starts Then Exits
-
-**Check for:**
-
-- Syntax errors in eggdrop config: `docker compose -f bots/<botname>/docker-compose.yml logs`
-- Missing `stdin_open: true` in docker-compose.yml (bot needs this to stay alive)
-- TCL script errors: Check logs for script load failures
 
 ### Stats Not Generating (Pompone)
 
 **Check pisg container:**
 
 ```bash
-docker compose -f bots/Pompone/docker-compose.yml logs -f pisg
+cd bots/Pompone
+docker compose logs -f pisg
 ```
 
 **Common Issues:**
@@ -235,7 +218,8 @@ docker compose -f bots/Pompone/docker-compose.yml logs -f pisg
 **Manual stats generation:**
 
 ```bash
-docker compose -f bots/Pompone/docker-compose.yml exec pisg pisg -co /config/pisg.cfg
+cd bots/Pompone
+docker compose exec pisg pisg -co /config/pisg.cfg
 ```
 
 ### Port Conflicts
@@ -262,26 +246,6 @@ If you see "port already in use" errors:
    ansible-playbook --ask-become-pass deploy-<botname>.yml
    ```
 
-### Container Won't Start
-
-**Check container status:**
-
-```bash
-docker compose -f bots/<botname>/docker-compose.yml ps -a
-```
-
-**View detailed logs:**
-
-```bash
-docker compose -f bots/<botname>/docker-compose.yml logs --tail=50
-```
-
-**Check for:**
-
-- Volume mount errors (permissions, missing directories)
-- Port binding conflicts
-- Resource limits (disk space, memory)
-
 ### Customizations Not Applied
 
 If changes to `ansible/host_vars/localhost/<botname>.yml` aren't taking effect:
@@ -292,32 +256,15 @@ If changes to `ansible/host_vars/localhost/<botname>.yml` aren't taking effect:
    ansible-playbook --ask-become-pass deploy-<botname>.yml
    ```
 
-2. **Restart containers** to pick up new .env values:
+   This regenerates all auto-generated files including `.env` and `eggdrop.conf`.
+
+2. **Restart containers** to pick up changes:
 
    ```bash
-   docker compose -f bots/<botname>/docker-compose.yml restart
+   cd bots/<botname>
+   docker compose restart
    ```
 
-3. **Check generated files**:
-   - `.env` file: `cat bots/<botname>/.env`
-   - Eggdrop config: `cat bots/<botname>/data/eggdrop.conf`
-
-### Getting Help
-
-**Collect diagnostic info:**
-
-```bash
-# Container status
-docker compose -f bots/<botname>/docker-compose.yml ps
-
-# Recent logs
-docker compose -f bots/<botname>/docker-compose.yml logs --tail=100
-
-# Check .env file
-cat bots/<botname>/.env
-
-# Check generated config
-cat bots/<botname>/data/eggdrop.conf
-```
-
-Include this information when asking for help or opening issues.
+3. **Check generated files** to verify changes:
+   - `.env` file (auto-generated by Ansible): `cat bots/<botname>/.env`
+   - Eggdrop config (auto-generated by Ansible): `cat bots/<botname>/data/eggdrop.conf`

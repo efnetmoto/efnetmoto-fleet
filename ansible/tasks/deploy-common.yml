@@ -1,3 +1,6 @@
+---
+# Common deployment tasks for all bots
+
 - name: Install Docker if not already installed
   ansible.builtin.include_role:
     name: geerlingguy.docker
@@ -22,11 +25,11 @@
 
 - name: Warn if userfile is missing
   ansible.builtin.debug:
-    msg: |
-      WARNING: Userfile not found at bots/{{ bot_nick }}/data/{{ bot_nick }}.user
-      This is expected for first deployment. Make sure to migrate your existing
-      userfile (and optionally chan and notes file(s)) before starting the bot.
-      See bots/{{ bot_nick }}/data/README.md for migration instructions.
+    msg:
+      - "WARNING: Userfile not found at bots/{{ bot_nick }}/data/{{ bot_nick }}.user"
+      - "This is expected for first deployment. Make sure to migrate your existing"
+      - "userfile (and optionally chan and notes file(s)) before starting the bot."
+      - "See bots/{{ bot_nick }}/data/README.md for migration instructions."
   when: not userfile_stat.stat.exists
 
 - name: Generate eggdrop.conf from template
@@ -43,3 +46,129 @@
     job: >
       /usr/bin/env ansible-playbook {{ playbook_dir }}/backup-{{ bot_nick | lower }}.yml
       > /dev/null
+
+- name: Generate backup SSH keypair
+  community.crypto.openssh_keypair:
+    path: "{{ ansible_env.HOME }}/.ssh/efnetmoto_backup"
+    type: ed25519
+    comment: "{{ bot_nick | lower }}-backup"
+    state: present
+  register: backup_keypair
+
+- name: Update backup SSH connection details in repository
+  ansible.builtin.set_fact:
+    updated_backup_keys: >-
+      {{
+        backup_ssh_public_keys
+        | combine(
+            {
+              (bot_nick | lower): backup_key_record
+            },
+            recursive=true
+          )
+      }}
+  vars:
+    backup_key_record:
+      user: "{{ ansible_user_id }}"
+      host: "{{ ansible_fqdn }}"
+      path: "{{ ansible_env.PWD }}/backups"
+      ssh_public_key: "{{ backup_keypair.public_key }}"
+  when: backup_keypair.public_key is defined
+
+- name: Write updated backup SSH keys to dedicated file
+  ansible.builtin.copy:
+    content: |
+      ---
+      # SSH connection details for off-site backups
+      # Automatically populated during deployment
+      backup_ssh_public_keys:
+      {{ updated_backup_keys | to_nice_yaml(indent=2) | indent(2, first=True) }}
+    dest: "{{ playbook_dir }}/ansible/group_vars/backup_ssh_keys.yml"
+    mode: '0644'
+  when: backup_keypair.public_key is defined
+
+- name: Build list of other bots' backup SSH keys
+  ansible.builtin.set_fact:
+    other_bot_keys: >-
+      {{
+        backup_ssh_public_keys
+        | dict2items
+        | selectattr('key', 'ne', bot_nick | lower)
+        | selectattr('value.ssh_public_key', 'defined')
+        | selectattr('value.ssh_public_key', 'ne', '')
+        | list
+      }}
+
+- name: Add other bots' public keys to authorized_keys
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user_id }}"
+    key: "{{ item.value.ssh_public_key }}"
+    state: present
+    key_options: >-
+      restrict,command="case \"$SSH_ORIGINAL_COMMAND\" in
+      scp\ -t\ */efnetmoto-fleet/backups/*)
+      exec $SSH_ORIGINAL_COMMAND;;
+      *) exit 1;;
+      esac"
+    comment: "efnetmoto backup from {{ item.key }}"
+  loop: "{{ other_bot_keys }}"
+  when: other_bot_keys | length > 0
+
+- name: Check if backup SSH key is valid
+  ansible.builtin.set_fact:
+    bot_config_in_repo: "{{ backup_ssh_public_keys[bot_nick | lower] | default({}) }}"
+    bot_key_in_repo: "{{ bot_config_in_repo.ssh_public_key | default('') }}"
+    backup_pubkey: "{{ backup_keypair.public_key }}"
+
+- name: Validate backup SSH key configuration
+  ansible.builtin.set_fact:
+    backup_ssh_key_valid: "{{ bot_key_in_repo != '' and backup_pubkey in bot_key_in_repo }}"
+
+- name: Backup SSH key requires user action
+  when: backup_keypair.changed or not backup_ssh_key_valid
+  block:
+
+    - name: Display newly generated backup SSH key
+      ansible.builtin.debug:
+        msg:
+          - "A new SSH backup key has been generated for this bot."
+          - "Connection details have been automatically added to:"
+          - "  ansible/group_vars/backup_ssh_keys.yml"
+          - "  backup_ssh_public_keys.{{ bot_nick | lower }}"
+          - ""
+          - "You must commit these changes and submit a PR so other hosts"
+          - "can authorize this bot to push backups to them."
+      when: backup_keypair.changed  # noqa: no-handler
+
+    - name: Warn when repository key does not match
+      ansible.builtin.debug:
+        msg:
+          - "WARNING: Backup SSH key configuration is incomplete."
+          - "The public key configured on this host does not match the repository."
+          - ""
+          - "Host key:"
+          - "{{ backup_pubkey }}"
+          - ""
+          - "Repository key:"
+          - "{{ bot_key_in_repo | default('NOT SET') }}"
+          - ""
+          - "Update ansible/group_vars/backup_ssh_keys.yml and create a PR to resolve this."
+      when: not backup_ssh_key_valid
+
+    - name: Backup SSH configuration requires action
+      ansible.builtin.debug:
+        msg:
+          - "RESULT: ACTION REQUIRED"
+          - "Backup SSH is NOT fully configured."
+          - "See messages above for required changes."
+
+- name: Backup SSH configuration verified
+  ansible.builtin.debug:
+    msg:
+      - "RESULT: OK"
+      - "Backup SSH configuration complete."
+      - "This host is authorized to push backups."
+      - "{{ other_bot_keys | length }} other bot(s) may push backups to this host."
+  when:
+    - backup_ssh_key_valid
+    - not backup_keypair.changed

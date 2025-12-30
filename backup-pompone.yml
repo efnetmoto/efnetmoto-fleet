@@ -5,6 +5,7 @@
 
   vars_files:
     - ansible/group_vars/all.yml
+    - ansible/group_vars/backup_ssh_keys.yml
     - ansible/host_vars/localhost/pompone.yml
 
   vars:
