@@ -22,115 +22,30 @@ The following are NOT included in backups as they're already version controlled:
 - README files
 - Repository code and templates
 
-## Manually Creating Backups
-
-Run the backup playbook for the bot you want to backup:
-
-```bash
-ansible-playbook backup-pompone.yml
-```
-
-This will create a timestamped backup file:
-
-```text
-backups/pompone-backup-2023-12-08.tar.gz
-```
-
-## Automated Backups
-
-Upon deploy using the `deploy-botname.yml` playbook, a cronjob is created to run these backups daily.
-
-## Backup Retention
-
-Backups older than 30 days (configurable) are automatically deleted when a new backup is created.
-
-To change retention period, edit the playbook:
-
-```yaml
-backup_retention_days: 30  # Adjust this value
-```
-
 ## Backup Contents
 
 Each backup contains the following structure:
 
 ```text
-pompone-backup-YYYY-MM-DD.tar.gz
+<botname>-backup-YYYY-MM-DD.tar.gz
 ├── data/                    # Bot runtime data
-│   ├── Pompone2.user
-│   ├── Pompone2.chan
-│   └── Pompone2.notes
+│   ├── <botname>.user
+│   ├── <botname>.chan
+│   └── <botname>.notes
 ├── overrides/               # Local customizations
 │   ├── docker-compose.override.yml
 │   └── overrides.yml
-├── html/                    # Generated statistics
+├── html/                    # Generated statistics (bot-specific)
 │   └── ...                  # Sub-directories are preserved
 ├── logs/                    # IRC logs
 │   └── ...                  # Sub-directories are preserved
-├── pisg-cache/              # PISG processing cache
-└── pisg-config/             # PISG customizations (with the exception of checked in files)
+├── pisg-cache/              # PISG processing cache (bot-specific)
+└── pisg-config/             # PISG customizations (bot-specific)
 ```
-
-## Restoring a Backup
-
-Backups are restored using a structured restore pipeline that validates the archive
-and restored contents before cleanup.
-This helps prevent accidental or partial restores.
-
-### Basic Restore Command
-
-To restore a backup, run the restore playbook for the bot and specify the archive file using `--extra-vars`:
-
-```bash
-ansible-playbook restore-<botname>.yml --extra-vars "archive_file=backups/<botname>-backup-2023-12-08.tar.gz"
-```
-
-### Supplying the Archive File
-
-- The `archive_file` variable specifies which backup archive to restore.
-- If `archive_file` is **not provided**, Ansible will prompt for it interactively via `vars_prompt`.
-
-Using `--extra-vars` is recommended for scripted or repeatable restores.
-
-## Restore Validation and Safety
-
-The restore pipeline performs multiple validation steps:
-
-### Archive Validation (prepare phase)
-
-Before restoring anything, the pipeline validates that:
-
-- The archive filename matches the expected format:
-
-    ```text
-    <botname>-backup-YYYY-MM-DD.tar.gz
-    ```
-
-- The bot name embedded in the filename matches the target bot
-- The archive MIME type indicates a gzip-compressed file
-
-### Restore Validation (final phase)
-
-After restoring files, the pipeline validates that:
-
-- Required directories (such as `data/` and `logs/`) were restored
-- Optional artifacts are restored **if and only if** they existed in the backup
-  - docker-compose override
-  - ansible overrides
-- Directory-based artifacts are validated to ensure every file present in the backup exists in the restore destination
-
-If any validation fails:
-
-- The restore process stops immediately
-- The staging directory is preserved for inspection
-- No cleanup is performed
-
-This ensures restore failures are visible and diagnosable.
 
 ## Important Notes
 
 - All backup files in this directory are gitignored
 - Backups may contain sensitive data (user passwords, channel keys)
 - Store backups securely with appropriate permissions (0600)
-- Test your restore procedure periodically!
-- Restore operations are intentionally strict to prevent silent data loss
+- For backup and restore procedures, see the [Deployment Guide](../DEPLOYMENT.md)

@@ -16,11 +16,11 @@
 
 - name: Display backup information
   ansible.builtin.debug:
-    msg: |
-      Backup created successfully!
-      Bot: {{ bot_name }}
-      Location: {{ backup_dir }}/{{ backup_filename }}
-      Size: {{ (backup_file.stat.size / 1024 / 1024) | round(2) }} MB
+    msg:
+      - "Backup created successfully!"
+      - "Bot: {{ bot_name }}"
+      - "Location: {{ backup_dir }}/{{ backup_filename }}"
+      - "Size: {{ (backup_file.stat.size / 1024 / 1024) | round(2) }} MB"
 
 - name: Clean up staging directory
   ansible.builtin.file:
@@ -30,7 +30,7 @@
 - name: Find old backups
   ansible.builtin.find:
     paths: "{{ backup_dir }}"
-    patterns: "{{ bot_name | lower }}-backup-*.tar.gz"
+    patterns: "*-backup-*.tar.gz"
     age: "{{ backup_retention_days }}d"
   register: old_backups
 
@@ -45,3 +45,88 @@
   ansible.builtin.debug:
     msg: "Removed {{ old_backups.files | length }} backup(s) older than {{ backup_retention_days }} days"
   when: old_backups.files | length > 0
+
+- name: Off-site backup execution context
+  ansible.builtin.debug:
+    msg:
+      - "Off-site backup process starting."
+      - "This step copies the latest backup to all configured peer hosts."
+
+- name: Determine off-site backup targets
+  ansible.builtin.set_fact:
+    backup_targets: >-
+      {{
+        backup_ssh_public_keys | dict2items
+        | selectattr('key', 'ne', bot_name | lower)
+        | selectattr('value.ssh_public_key', 'defined')
+        | selectattr('value.ssh_public_key', 'ne', '')
+        | selectattr('value.user', 'defined')
+        | selectattr('value.user', 'ne', '')
+        | selectattr('value.host', 'defined')
+        | selectattr('value.host', 'ne', '')
+        | selectattr('value.path', 'defined')
+        | selectattr('value.path', 'ne', '')
+        | list
+      }}
+
+- name: Copy backup to off-site hosts
+  ansible.builtin.command:
+    cmd: >
+      scp -i {{ ansible_env.HOME }}/.ssh/efnetmoto_backup
+      -o StrictHostKeyChecking=accept-new
+      -o ConnectTimeout=30
+      {{ backup_dir }}/{{ backup_filename }}
+      {{ item.value.user }}@{{ item.value.host }}:{{ item.value.path }}/
+  loop: "{{ backup_targets }}"
+  register: offsite_backup_results
+  ignore_errors: true
+  changed_when: false
+  when: backup_targets | length > 0
+
+- name: Classify off-site backup results
+  ansible.builtin.set_fact:
+    offsite_backup_successes: >-
+      {{ offsite_backup_results.results
+         | selectattr('rc', 'eq', 0)
+         | map(attribute='item.key')
+         | list }}
+    offsite_backup_failures: >-
+      {{ offsite_backup_results.results
+         | selectattr('rc', 'ne', 0)
+         | map(attribute='item.key')
+         | list }}
+  when: offsite_backup_results is defined
+
+- name: Display per-host off-site backup successes
+  ansible.builtin.debug:
+    msg:
+      - "{{ item }}: SUCCESS"
+  loop: "{{ offsite_backup_successes | default([]) }}"
+  when: offsite_backup_successes | length > 0
+
+- name: Display per-host off-site backup failures
+  ansible.builtin.debug:
+    msg:
+      - "{{ item }}: FAILED"
+  loop: "{{ offsite_backup_failures | default([]) }}"
+  when: offsite_backup_failures | length > 0
+
+- name: Display off-site backup summary
+  ansible.builtin.debug:
+    msg:
+      - "Off-site backup summary:"
+      - "Targets configured: {{ backup_targets | length }}"
+      - "Successful backups: {{ offsite_backup_successes | length | default(0) }}"
+      - "Failed backups: {{ offsite_backup_failures | length | default(0) }}"
+      - ""
+      - "RESULT:"
+      - >-
+        {% if backup_targets | length == 0 %}
+        SKIPPED — no off-site targets are configured.
+        {% elif offsite_backup_failures | length == 0 %}
+        OK — all off-site backups completed successfully.
+        {% elif offsite_backup_successes | length > 0 %}
+        DEGRADED — some off-site backups failed. Review failures above.
+        {% else %}
+        FAILED — no off-site backups succeeded. Manual intervention required.
+        {% endif %}

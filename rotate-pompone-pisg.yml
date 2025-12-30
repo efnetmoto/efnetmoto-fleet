@@ -86,14 +86,14 @@
 
     - name: Display rotation summary
       ansible.builtin.debug:
-        msg: |
-          PISG rotation completed for {{ archive_year }}!
-
-          Actions taken:
-          - Archived {{ year_logs.matched }} log file(s) to archives/logs-{{ archive_year }}.tar.gz
-          - Moved {{ current_html.matched }} HTML file(s) to html/{{ archive_year }}/
-          - Updated footer.txt with links to {{ sorted_years | length }} year(s) of archives
-
-          Next steps:
-          - PISG will regenerate stats for current year on next run
-          - Previous years accessible at: /{{ archive_year }}/
+        msg:
+          - "PISG rotation completed for {{ archive_year }}!"
+          - ""
+          - "Actions taken:"
+          - "- Archived {{ year_logs.matched }} log file(s) to archives/logs-{{ archive_year }}.tar.gz"
+          - "- Moved {{ current_html.matched }} HTML file(s) to html/{{ archive_year }}/"
+          - "- Updated footer.txt with links to {{ sorted_years | length }} year(s) of archives"
+          - ""
+          - "Next steps:"
+          - "- PISG will regenerate stats for current year on next run"
+          - "- Previous years accessible at: /{{ archive_year }}/"
