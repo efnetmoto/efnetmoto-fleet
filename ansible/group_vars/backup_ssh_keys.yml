@@ -8,7 +8,7 @@ backup_ssh_public_keys:
     ssh_public_key: ''
     user: ''
   pompone:
-    host: valence.tedski.net
+    host: pompone.efnetmoto.com
     path: /home/tedski/src/efnetmoto-fleet/backups
     ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE21/qmdiKaPGT6KCjYLSapVkXaMx7BhpzkJIXkF7Zxz
     user: tedski
