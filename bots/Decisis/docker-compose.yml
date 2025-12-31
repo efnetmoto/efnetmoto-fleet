@@ -1,0 +1,34 @@
+services:
+  decisis:
+    image: eggdrop:1.9.5
+    container_name: decisis
+    restart: unless-stopped
+
+    # REQUIRED: Keep stdin open even if not attached
+    # Without this, Eggdrop will give "END OF FILE ON TERMINAL" error
+    stdin_open: true
+
+    # DCC/Telnet port
+    ports:
+      - "${DCC_PORT}:2020"
+
+    volumes:
+      # Persistent data directory (REQUIRED)
+      # Contains: config, userfile, chanfile
+      - ./data:/home/eggdrop/eggdrop/data
+
+      # Bot logs (operational logs - mco flags)
+      - ./logs:/home/eggdrop/eggdrop/logs
+
+      # Shared TCL scripts (from repo root)
+      - ../../shared/tcl-scripts:/home/eggdrop/eggdrop/scripts-shared
+
+    environment:
+      - TZ=${TZ}
+
+    networks:
+      - decisis-net
+
+networks:
+  decisis-net:
+    driver: bridge

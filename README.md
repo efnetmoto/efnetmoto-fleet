@@ -13,6 +13,7 @@ efnetmoto-fleet/
 │   └── ...
 ├── bots/                       # Bot-specific configurations
 │   ├── Pompone/
+│   ├── Decisis/
 │   └── XeroKewl/
 ├── services/                   # Shared service Dockerfiles
 │   ├── pisg/
@@ -29,7 +30,8 @@ efnetmoto-fleet/
 │   │       ├── pompone.yml
 │   │       └── xerokewl.yml
 │   ├── tasks/                  # Common tasks used in bot-specific playbooks
-│   │   ├── deploy-common.yml
+│   │   ├── deploy-prepare.yml
+│   │   ├── deploy-finalize.yml
 │   │   ├── backup-prepare.yml
 │   │   ├── backup-finalize.yml
 │   │   └── ...
@@ -122,6 +124,10 @@ If adding a new bot to the network, link it via DCC chat:
 
 ### Bot-Specific Notes
 
+### Decisis
+
+- Includes the `seen` database, tracking which irc nicks have been seen online in the channel.
+
 ### Pompone
 
 - Includes pisg (IRC log analyzer) for [stats](https://stats.efnetmoto.com/)
@@ -165,7 +171,7 @@ docker compose down
 
 ```bash
 git pull
-ansible-playbook deploy-<botname>.yml
+ansible-playbook deploy-${botname}.yml
 ```
 
 ## Troubleshooting
@@ -232,7 +238,7 @@ If you see "port already in use" errors:
    sudo lsof -i :<port>
    ```
 
-2. **Change the port** in `ansible/host_vars/localhost/<botname>.yml`:
+2. **Change the port** in `ansible/host_vars/localhost/${botname}.yml`:
 
    ```yaml
    environment_variables:
@@ -243,17 +249,17 @@ If you see "port already in use" errors:
 3. **Redeploy:**
 
    ```bash
-   ansible-playbook --ask-become-pass deploy-<botname>.yml
+   ansible-playbook --ask-become-pass deploy-${botname}.yml
    ```
 
 ### Customizations Not Applied
 
-If changes to `ansible/host_vars/localhost/<botname>.yml` aren't taking effect:
+If changes to `ansible/host_vars/localhost/${botname}.yml` aren't taking effect:
 
 1. **Redeploy** to regenerate configs:
 
    ```bash
-   ansible-playbook --ask-become-pass deploy-<botname>.yml
+   ansible-playbook --ask-become-pass deploy-${botname}.yml
    ```
 
    This regenerates all auto-generated files including `.env` and `eggdrop.conf`.

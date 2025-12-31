@@ -1,0 +1,31 @@
+---
+- name: Deploy Decisis Eggdrop Bot
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/group_vars/backup_ssh_keys.yml
+    - ansible/host_vars/localhost/decisis.yml
+
+  tasks:
+
+    # Phase 1: Common deploy preparation tasks and dependency resolution
+    - name: Check for local overrides file
+      ansible.builtin.stat:
+        path: ansible/host_vars/localhost/overrides.yml
+      register: overrides_stat
+
+    - name: Load local override vars if present
+      ansible.builtin.include_vars:
+        file: ansible/host_vars/localhost/overrides.yml
+      when: overrides_stat.stat.exists
+
+    - name: Run prepare tasks
+      ansible.builtin.import_tasks: ansible/tasks/deploy-prepare.yml
+
+    # Phase 2: Decisis-specific tasks.
+
+    # Phase 3: Finalize and validate deployment and present user feedback
+    - name: Run finalize tasks
+      ansible.builtin.import_tasks: ansible/tasks/deploy-finalize.yml

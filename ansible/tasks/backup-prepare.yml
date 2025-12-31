@@ -33,7 +33,7 @@
   ansible.builtin.file:
     path: "{{ staging_dir.path }}/{{ item }}"
     state: directory
-    mode: '0755'
+    mode: '0775'
   loop: "{{ extra_backup_dirs | default([]) }}"
   when: extra_backup_dirs is defined
 
@@ -42,7 +42,7 @@
     src: "{{ item.path }}"
     dest: "{{ staging_dir.path }}/data/{{ item.path | basename }}"
     remote_src: true
-    mode: preserve
+    mode: "0664"
   loop: "{{ bot_data_files.files }}"
 
 - name: Check if docker-compose override exists
