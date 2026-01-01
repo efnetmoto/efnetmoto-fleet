@@ -27,19 +27,18 @@
 - name: Find all index.html files in year directories
   ansible.builtin.find:
     paths: "{{ bot_dir }}/html"
-    patterns: '[0-9]{4}/index\.html'
+    patterns: 'index\.html'
     use_regex: true
     recurse: true
   register: year_index_files
 
-- name: Update archive links in all previous years' index.html files
+- name: Replace archive links block in index.html files
   ansible.builtin.replace:
     path: "{{ item.path }}"
-    after: '(?m)<!-- BEGIN ARCHIVE LINKS -->'
-    before: '<!-- END ARCHIVE LINKS -->'
-    regexp: '^(.*)$'
-    replace: >-
-      {{ footer_content["content"] | b64decode |
-         regex_replace("<!-- BEGIN ARCHIVE LINKS -->|<!-- END ARCHIVE LINKS -->", "") | trim }}
+    regexp: '(?s)<!-- BEGIN ARCHIVE LINKS -->.*?<!-- END ARCHIVE LINKS -->'
+    replace: |-
+      <!-- BEGIN ARCHIVE LINKS -->
+      {{ footer_content.content | b64decode | trim }}
+      <!-- END ARCHIVE LINKS -->
   loop: "{{ year_index_files.files }}"
   when: year_index_files.matched > 0
