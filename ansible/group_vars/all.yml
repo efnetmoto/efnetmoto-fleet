@@ -3,7 +3,7 @@
 
 # IRC Network Configuration
 irc_network: "EFnet"
-timezone_offset: 8
+timezone_offset: -8
 
 # EFnet Server List
 # For SSL, prepend the port with '+'

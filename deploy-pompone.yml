@@ -50,12 +50,10 @@
       loop_control:
         label: "{{ item.item }}"
 
-    - name: Generate pisg footer from template
-      ansible.builtin.template:
-        src: templates/pisg-footer.txt.j2
-        dest: "bots/Pompone/pisg-config/footer.txt"
-        mode: "0644"
-      when: pisg_enabled | default(false)
+    - name: Generate pisg footer
+      ansible.builtin.include_tasks: ansible/tasks/generate-pisg-footer.yml
+      vars:
+        bot_dir: "bots/Pompone"
 
     - name: Generate .env file with port configuration
       ansible.builtin.copy:

@@ -1,17 +1,18 @@
 ---
-- name: Rotate PISG Stats and Logs for Pompone
+- name: Rotate Pompone PISG statistics (idempotent)
   hosts: localhost
   connection: local
+  gather_facts: true
 
   vars_files:
     - ansible/group_vars/all.yml
     - ansible/host_vars/localhost/pompone.yml
 
   vars:
-    bot_name: "Pompone"
     bot_dir: "bots/Pompone"
-    # Year to archive (defaults to last year)
-    archive_year: "{{ ansible_date_time.year | int - 1 }}"
+    log_dir: "{{ bot_dir }}/logs/channel"
+    html_dir: "{{ bot_dir }}/html"
+    cache_dir: "{{ bot_dir }}/pisg-cache"
 
   tasks:
     - name: Check for local overrides file
@@ -24,46 +25,25 @@
         file: ansible/host_vars/localhost/overrides.yml
       when: overrides_stat.stat.exists
 
+    - name: Set year variables
+      ansible.builtin.set_fact:
+        current_year: "{{ ansible_date_time.year | int }}"
+        last_year: "{{ ansible_date_time.year | int - 1 }}"
+
     - name: Display rotation information
       ansible.builtin.debug:
-        msg: "Starting PISG rotation for year {{ archive_year }}"
+        msg: "Starting PISG rotation for year {{ last_year }}"
 
-    - name: Check if channel logs directory exists
+    - name: Check if last year HTML archive exists
       ansible.builtin.stat:
-        path: "{{ bot_dir }}/logs/channels"
-      register: channels_log_dir
+        path: "{{ html_dir }}/{{ last_year }}"
+      register: last_year_html
 
-    - name: Fail if no logs directory
-      ansible.builtin.fail:
-        msg: "Channel logs directory not found at {{ bot_dir }}/logs/channels"
-      when: not channels_log_dir.stat.exists
-
-    - name: Find channel logs for the archive year
+    - name: Find last year log files
       ansible.builtin.find:
-        paths: "{{ bot_dir }}/logs/channels"
-        patterns: "*.{{ archive_year }}*"
-      register: year_logs
-
-    - name: Archive channel logs for the year
-      community.general.archive:
-        path: "{{ year_logs.files | map(attribute='path') | list }}"
-        dest: "{{ bot_dir }}/archives/logs-{{ archive_year }}.tar.gz"
-        format: gz
-        mode: '0644'
-      when: year_logs.matched > 0
-
-    - name: Remove archived log files
-      ansible.builtin.file:
-        path: "{{ item.path }}"
-        state: absent
-      loop: "{{ year_logs.files }}"
-      when: year_logs.matched > 0
-
-    - name: Create year-specific HTML directory
-      ansible.builtin.file:
-        path: "{{ bot_dir }}/html/{{ archive_year }}"
-        state: directory
-        mode: '0755'
+        paths: "{{ log_dir }}"
+        patterns: "*.{{ last_year }}*"
+      register: last_year_logs
 
     - name: Find current HTML and PNG files (excluding year directories and README)
       ansible.builtin.find:
@@ -74,12 +54,49 @@
           - README.md
       register: current_html
 
-    - name: Move current HTML and PNG to year directory
-      ansible.builtin.command:
-        cmd: "mv {{ item.path }} {{ bot_dir }}/html/{{ archive_year }}/"
-      loop: "{{ current_html.files }}"
-      when: current_html.matched > 0
-      changed_when: true
+    - name: Find last year's cache files
+      ansible.builtin.find:
+        paths: "{{ cache_dir }}"
+        patterns: "_logs_*{{ last_year }}*"
+      register: last_year_cache
+
+    - name: Purge last year's cache files
+      ansible.builtin.file:
+        path: "{{ cache_dir }}"
+        state: absent
+      loop: "{{ last_year_cache.files }}"
+
+    - name: Archive last year's logs and generate stats
+      when:
+        - not last_year_html.stat.exists
+        - last_year_logs.matched > 0
+      block:
+
+        - name: Create HTML directory for last year
+          ansible.builtin.file:
+            path: "{{ html_dir }}/{{ last_year }}"
+            state: directory
+            mode: "0775"
+
+        - name: Move current HTML and PNG to year directory
+          ansible.builtin.command:
+            cmd: "mv {{ item.path }} {{ bot_dir }}/html/{{ last_year }}/"
+          loop: "{{ current_html.files }}"
+          when: current_html.matched > 0
+          changed_when: true
+
+        - name: Archive channel logs for the year
+          community.general.archive:
+            path: "{{ year_logs.files | map(attribute='path') | list }}"
+            dest: "{{ bot_dir }}/archives/logs-{{ last_year }}.tar.gz"
+            format: gz
+            mode: '0664'
+
+        - name: Remove archived log files
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ last_year_logs.files }}"
 
     - name: Generate new footer
       ansible.builtin.include_tasks: ansible/tasks/generate-pisg-footer.yml
@@ -87,13 +104,13 @@
     - name: Display rotation summary
       ansible.builtin.debug:
         msg:
-          - "PISG rotation completed for {{ archive_year }}!"
+          - "PISG rotation completed for {{ last_year }}!"
           - ""
           - "Actions taken:"
-          - "- Archived {{ year_logs.matched }} log file(s) to archives/logs-{{ archive_year }}.tar.gz"
-          - "- Moved {{ current_html.matched }} HTML file(s) to html/{{ archive_year }}/"
+          - "- Archived {{ last_year_logs.matched }} log file(s) to archives/logs-{{ last_year }}.tar.gz"
+          - "- Moved {{ current_html.matched }} HTML file(s) to html/{{ last_year }}/"
           - "- Updated footer.txt with links to {{ sorted_years | length }} year(s) of archives"
           - ""
           - "Next steps:"
           - "- PISG will regenerate stats for current year on next run"
-          - "- Previous years accessible at: /{{ archive_year }}/"
+          - "- Previous years accessible at: /{{ last_year }}/"
