@@ -25,7 +25,8 @@ dcc_port: &dcc_port 2020
 environment_variables:
   dcc_port: *dcc_port
   tz: "America/Los_Angeles"
-
+  dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end}}"
+  
 # Runtime directories to create
 runtime_dirs:
   - "bots/Decisis/data"
