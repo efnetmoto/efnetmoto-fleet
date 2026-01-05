@@ -3,7 +3,7 @@
 # Automatically populated during deployment
 backup_ssh_public_keys:
   decisis:
-    host: sea.loopstart.org
+    host: lee.loopstart.org
     path: /home/decisis/efnetmoto-fleet/backups
     ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII3gYV/gtpQF2Dg2wywgSL9COMt+ZUGCzT6X0InhI1c3
     user: decisis
