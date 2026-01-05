@@ -11,6 +11,7 @@ services:
     # DCC/Telnet port
     ports:
       - "${DCC_PORT}:2020"
+      - "${DCC_PORTRANGE}:${DCC_PORTRANGE}"
 
     volumes:
       # Persistent data directory (REQUIRED)
