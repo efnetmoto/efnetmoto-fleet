@@ -24,7 +24,7 @@ dcc_port: &dcc_port 2020
 # Docker compose environment variables
 environment_variables:
   dcc_port: *dcc_port
-  dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end}}"
+  dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end }}"
   stats_port: 8080  # Stats HTTP Port (nginx)
   cron_schedule: "{{ pisg_cron_schedule }}"
   tz: "America/Los_Angeles"
