@@ -59,7 +59,7 @@
     user: "{{ ansible_user_id }}"
     job: >
       /usr/bin/env ansible-playbook {{ playbook_dir }}/backup-{{ bot_nick | lower }}.yml
-      > /dev/null
+      >> bots/{{ bot_nick | lower }}/logs/backup.{{ ansible_date_time.date }}.log
 
 - name: Generate backup SSH keypair
   community.crypto.openssh_keypair:
