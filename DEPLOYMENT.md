@@ -51,6 +51,15 @@ dcc_port: 2020
 stats_port: 8080  # Only for Pompone
 ```
 
+Check the main variable file (`ansible/group_vars/all.yml`):
+
+```yaml
+
+# Common DCC Settings
+dcc_portrange_start: 2010
+dcc_portrange_end: 2019
+```
+
 If you wish to change any of these for your local installation, use the overrides file:
 
 ```bash
