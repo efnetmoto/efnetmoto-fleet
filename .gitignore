@@ -14,11 +14,13 @@ bots/*/data/*
 bots/*/logs/**/*
 !bots/*/logs/**/README.md
 
-# Pisg cache and output
+# Pisg archives, cache and output
 bots/*/pisg-cache/*
 !bots/*/pisg-cache/README.md
 bots/*/html/*
 !bots/*/html/README.md
+bots/*/archives/*
+!bots/*/archives/README.md
 
 # Pisg generated config (template-generated, not static)
 bots/*/pisg-config/pisg.cfg
