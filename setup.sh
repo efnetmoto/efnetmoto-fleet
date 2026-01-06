@@ -34,7 +34,7 @@ fi
 echo
 
 echo "[3/4] Checking for Ansible..."
-if command -v ansible-playbook &> /dev/null; then
+if command -v ansible-playbook > /dev/null 2>&1; then
     ANSIBLE_VERSION=$(ansible --version | head -n1)
     echo "✓ Ansible already installed: $ANSIBLE_VERSION"
 else
@@ -50,7 +50,7 @@ else
             ;;
         centos|rhel|fedora)
             echo "Installing Ansible via dnf/yum..."
-            if command -v dnf &> /dev/null; then
+            if command -v dnf > /dev/null 2>&1; then
                 sudo dnf install -y ansible
             else
                 sudo yum install -y ansible
@@ -64,7 +64,7 @@ else
     esac
 
     # Verify Ansible installation
-    if ! command -v ansible-playbook &> /dev/null; then
+    if ! command -v ansible-playbook > /dev/null 2>&1; then
         echo "ERROR: Ansible installation failed"
         exit 1
     fi
