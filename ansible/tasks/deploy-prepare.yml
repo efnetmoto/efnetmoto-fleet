@@ -88,7 +88,7 @@
   vars:
     backup_key_record:
       user: "{{ ansible_user_id }}"
-      host: "{{ ansible_fqdn }}"
+      host: "{{ backup_host | default(ansible_fqdn) }}"
       path: "{{ ansible_env.PWD }}/backups"
       ssh_public_key: "{{ backup_keypair.public_key }}"
   when: backup_keypair.public_key is defined

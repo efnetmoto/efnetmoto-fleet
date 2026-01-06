@@ -67,6 +67,17 @@ cp ansible/host_vars/localhost/override.yml.example ansible/host_vars/localhost/
 vi ansible/host_vars/localhost/override.yml
 ```
 
+### Backup Host Configuration
+
+Deployment auto-detects your backup hostname using the system's FQDN.
+If you wish to change this, add a `backup_host` override in your `overrides.yml`:
+
+```yaml
+backup_host: "your-hostname.example.com"
+```
+
+This hostname will be recorded in `ansible/group_vars/backup_ssh_keys.yml` so other bots know where to push backups.
+
 ## Step 4: Migrate Existing Bot Data (Optional)
 
 If migrating an existing bot, obtain a recent backup from another bot admin and restore from backup:
