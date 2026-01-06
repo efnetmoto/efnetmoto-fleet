@@ -101,6 +101,14 @@
     mode: '0644'
   when: backup_keypair.public_key is defined
 
+- name: Create restricted SFTP wrapper script for backup key
+  ansible.builtin.template:
+    src: templates/backups-sftp-restriction.sh.j2
+    dest: shared/bin/backups-sftp-restriction.sh
+    mode: "0755"
+  vars:
+    local_backups_dir: "{{ playbook_dir }}/backups"
+
 - name: Build list of other bots' backup SSH keys
   ansible.builtin.set_fact:
     other_bot_keys: >-
@@ -119,11 +127,7 @@
     key: "{{ item.value.ssh_public_key }}"
     state: present
     key_options: >-
-      restrict,command="case \"$SSH_ORIGINAL_COMMAND\" in
-      scp\ -t\ */efnetmoto-fleet/backups/*)
-      exec $SSH_ORIGINAL_COMMAND;;
-      *) exit 1;;
-      esac"
+      restrict,command="{{ playbook_dir }}/shared/bin/backups-sftp-restriction.sh"
     comment: "efnetmoto backup from {{ item.key }}"
   loop: "{{ other_bot_keys }}"
   when: other_bot_keys | length > 0
