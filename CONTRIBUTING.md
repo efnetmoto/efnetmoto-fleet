@@ -1,4 +1,4 @@
-# Contributing to Eggdrop Fleet
+# Contributing to EfnetMoto Fleet
 
 This document provides guidelines for contributing to the efnetmoto-fleet repository,
 including repository structure, development workflows, and best practices.
