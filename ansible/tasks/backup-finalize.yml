@@ -72,7 +72,7 @@
 - name: Copy backup to off-site hosts
   ansible.builtin.command:
     cmd: >
-      scp -i {{ ansible_env.HOME }}/.ssh/efnetmoto_backup
+      scp -O -i {{ ansible_env.HOME }}/.ssh/efnetmoto_backup
       -o StrictHostKeyChecking=accept-new
       -o ConnectTimeout=30
       {{ backup_dir }}/{{ backup_filename }}

@@ -2,6 +2,10 @@
 backups/*
 !backups/README.md
 
+# Shared bin files
+shared/bin/*
+!shared/bin/README.md
+
 # Bot runtime data
 bots/*/data/*
 !bots/*/data/README.md

@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+# Restrict backup SSH key to legacy SCP writes to backups directory only
+ALLOWED_DIR="{{ local_backups_dir }}"
+
+case "$SSH_ORIGINAL_COMMAND" in
+  scp\ -t\ "$ALLOWED_DIR"/*)
+    # Allow SCP receive (write) to backups directory
+    exec $SSH_ORIGINAL_COMMAND
+    ;;
+  *)
+    echo "Access denied" >&2
+    exit 1
+    ;;
+esac
