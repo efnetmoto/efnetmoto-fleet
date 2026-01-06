@@ -69,6 +69,10 @@
     state: present
   register: backup_keypair
 
+- name: Capture original SSH key from repository (before any updates)
+  ansible.builtin.set_fact:
+    original_bot_key_in_repo: "{{ backup_ssh_public_keys[bot_nick | lower].ssh_public_key | default('') }}"
+
 - name: Update backup SSH connection details in repository
   ansible.builtin.set_fact:
     updated_backup_keys: >-
@@ -132,15 +136,13 @@
   loop: "{{ other_bot_keys }}"
   when: other_bot_keys | length > 0
 
-- name: Check if backup SSH key is valid
+- name: Get SSH public key from disk
   ansible.builtin.set_fact:
-    bot_config_in_repo: "{{ backup_ssh_public_keys[bot_nick | lower] | default({}) }}"
-    bot_key_in_repo: "{{ bot_config_in_repo.ssh_public_key | default('') }}"
     backup_pubkey: "{{ backup_keypair.public_key }}"
 
 - name: Validate backup SSH key configuration
   ansible.builtin.set_fact:
-    backup_ssh_key_valid: "{{ bot_key_in_repo != '' and backup_pubkey in bot_key_in_repo }}"
+    backup_ssh_key_valid: "{{ original_bot_key_in_repo != '' and backup_pubkey in original_bot_key_in_repo }}"
 
 - name: Backup SSH key requires user action
   when: backup_keypair.changed or not backup_ssh_key_valid
@@ -168,7 +170,7 @@
           - "{{ backup_pubkey }}"
           - ""
           - "Repository key:"
-          - "{{ bot_key_in_repo | default('NOT SET') }}"
+          - "{{ original_bot_key_in_repo | default('NOT SET') }}"
           - ""
           - "Update ansible/group_vars/backup_ssh_keys.yml and create a PR to resolve this."
       when: not backup_ssh_key_valid
