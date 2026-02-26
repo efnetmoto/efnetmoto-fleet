@@ -28,6 +28,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Force install Ansible Galaxy collections
+        run: ansible-galaxy collection install -r ansible/requirements.yml --force
+
       - name: Run ansible-lint
         uses: ansible/ansible-lint@main
         with:
