@@ -40,11 +40,31 @@ if command -v ansible-playbook > /dev/null 2>&1; then
 else
     echo "Ansible not found. Installing..."
     case $OS in
-        ubuntu|debian)
-            echo "Installing Ansible via apt..."
+        ubuntu)
+            echo "Installing Ansible via apt (PPA)..."
             sudo apt-get update
             sudo apt-get install -y software-properties-common
-            sudo apt-add-repository --yes --update ppa:ansible/ansible 2>/dev/null || true
+            sudo apt-add-repository --yes --update ppa:ansible/ansible
+            sudo apt-get update
+            sudo apt-get install -y ansible
+            ;;
+        debian)
+            echo "Installing Ansible via apt (Ansible PPA)..."
+            case $VERSION_ID in
+                11) UBUNTU_CODENAME=focal ;;
+                12) UBUNTU_CODENAME=jammy ;;
+                *)
+                    echo "ERROR: Unsupported Debian version: $VERSION_ID"
+                    echo "Please install Ansible manually: https://docs.ansible.com/ansible/latest/installation_guide/"
+                    exit 1
+                    ;;
+            esac
+            sudo apt-get update
+            sudo apt-get install -y wget gnupg
+            wget -O- "https://keyserver.ubuntu.com/pks/lookup?fingerprint=on&op=get&search=0x6125E2A8C77F2818FB7BD15B93C4A3FD7BB9C367" \
+                | sudo gpg --dearmor -o /usr/share/keyrings/ansible-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/ansible-archive-keyring.gpg] http://ppa.launchpad.net/ansible/ansible/ubuntu ${UBUNTU_CODENAME} main" \
+                | sudo tee /etc/apt/sources.list.d/ansible.list
             sudo apt-get update
             sudo apt-get install -y ansible
             ;;
