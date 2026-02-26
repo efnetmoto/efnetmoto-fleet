@@ -1,0 +1,37 @@
+---
+- name: Backup Xerokewl Bot Data
+  hosts: localhost
+  connection: local
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/group_vars/backup_ssh_keys.yml
+    - ansible/host_vars/localhost/xerokewl.yml
+
+  vars:
+    bot_name: "Xerokewl"
+    bot_dir: "bots/Xerokewl"
+    backup_dir: "backups"
+    backup_retention_days: 30
+    timestamp: "{{ ansible_date_time.date }}"
+    backup_filename: "xerokewl-backup-{{ timestamp }}.tar.gz"
+    # Xerokewl-specific: add directory for quotes
+    extra_backup_dirs:
+      - quotedb
+
+  tasks:
+    # Phase 1: Common backup preparation and base data
+    - name: Execute common backup tasks
+      ansible.builtin.include_tasks: ansible/tasks/backup-prepare.yml
+
+    # Phase 2: Xerokewl-specific data
+    - name: Copy quote database files
+      ansible.builtin.copy:
+        src: "{{ bot_dir }}/data/quotedb"
+        dest: "{{ staging_dir.path }}/quotedb"
+        remote_src: true
+        mode: preserve
+
+    # Phase 3: Finalize backup
+    - name: Finalize backup
+      ansible.builtin.include_tasks: ansible/tasks/backup-finalize.yml
