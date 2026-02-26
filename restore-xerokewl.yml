@@ -1,0 +1,50 @@
+---
+- name: Restore Xerokewl Bot Data
+  hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: archive_file
+      prompt: "Provide the archive filename to be restored:"
+      private: false
+
+  vars_files:
+    - ansible/group_vars/all.yml
+    - ansible/host_vars/localhost/xerokewl.yml
+
+  vars:
+    bot_name: "Xerokewl"
+    bot_dir: "bots/Xerokewl"
+    backup_dir: "backups"
+    extra_restore_dirs:
+      - quotedb
+
+  tasks:
+    # Phase 1: Common restore preparation and base data
+    - name: Execute common restore tasks
+      ansible.builtin.include_tasks: ansible/tasks/restore-prepare.yml
+
+    # Phase 2: Xerokewl-specific data
+    - name: Check if quote database exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir.path }}/quotedb"
+      register: quote_db_stat
+
+    - name: Restore the quote database files
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/quotedb"
+        dest: "{{ bot_dir }}/data/quotedb"
+        mode: preserve
+        remote_src: true
+      when: quote_db_stat.stat.exists
+
+    # Phase 3: Validate & finalize restore
+    - name: Validate quote database restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/quotedb"
+        restore_path: "{{ bot_dir }}/data/quotedb"
+        artifact_name: "Quote Database"
+
+    - name: Finalize restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-finalize.yml

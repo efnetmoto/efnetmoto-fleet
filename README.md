@@ -135,6 +135,10 @@ If adding a new bot to the network, link it via DCC chat:
 - Generated stats output available in `bots/Pompone/html/`
 - Uses separate log directories (bot/ and channels/) for pisg processing
 
+### Xerokewl
+
+- Includes the `quote` database containing all saved quotes.
+
 ## Management
 
 > **Note:** Docker Compose commands should be run from the bot's directory to ensure `docker-compose.override.yml` files are automatically loaded for local customizations.
