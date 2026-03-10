@@ -61,7 +61,7 @@ set telnet-banner "text/banner"
 set userfile-perm 0664
 
 ## Botnet/DCC/Telnet
-listen {{ dcc_port }} all
+listen 2020 all
 set reserved-portrange {{ dcc_portrange_start }}:{{ dcc_portrange_end }}
 set remote-boots 0
 set share-unlinks 1
