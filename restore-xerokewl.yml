@@ -32,8 +32,8 @@
 
     - name: Restore the quote database files
       ansible.builtin.copy:
-        src: "{{ staging_dir.path }}/quotedb"
-        dest: "{{ bot_dir }}/data/quotedb"
+        src: "{{ staging_dir.path }}/quotedb/"
+        dest: "{{ bot_dir }}/data/quotedb/"
         mode: preserve
         remote_src: true
       when: quote_db_stat.stat.exists
