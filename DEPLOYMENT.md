@@ -87,7 +87,7 @@ If migrating an existing bot, obtain a recent backup from another bot admin and 
 mv ~/<botname>-backup-YYYY-MM-DD.tar.gz efnetmoto-fleet/backups/
 
 # Restore the backup and redeploy
-ansible-playbook restore-<botname>.yml --ask-become-pass
+ansible-playbook restore-<botname>.yml --become --ask-become-pass
 ansible-playbook deploy-<botname>.yml --ask-become-pass
 
 # Restart services to pick up restored data
@@ -211,7 +211,7 @@ Backups are restored using a structured restore pipeline that validates the arch
 **Basic Restore Command:**
 
 ```bash
-ansible-playbook -K restore-<botname>.yml --extra-vars "archive_file=backups/<botname>-backup-2023-12-08.tar.gz"
+ansible-playbook restore-<botname>.yml --become --ask-become-pass --extra-vars "archive_file=backups/<botname>-backup-2023-12-08.tar.gz"
 ```
 
 > 📝 **Note:** `-K` (become root) needed to work around file permissions on bot-owned files
@@ -275,7 +275,7 @@ The deployment will automatically generate NEW SSH backup keys (old private key 
 mv ~/<botname>-backup-YYYY-MM-DD.tar.gz efnetmoto-fleet/backups/
 
 # Restore the backup and redeploy
-ansible-playbook restore-<botname>.yml --ask-become-pass
+ansible-playbook restore-<botname>.yml --become --ask-become-pass
 ansible-playbook deploy-<botname>.yml --ask-become-pass
 
 # Restart services to pick up restored data
