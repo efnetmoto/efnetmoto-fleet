@@ -38,7 +38,7 @@ bind pub "-" !searchquotes quote_content_search
 bind pub "-" !searchquote quote_content_search
 
 ### code starts here
-set quote_version "2.0.0"
+set quote_version "2.0.1"
 
 # Open (or reopen on rehash) the persistent database handle and ensure schema exists
 catch {quotes_db close}
@@ -263,7 +263,7 @@ proc quote_stats { nick host handle channel text } {
   global quotes_db
 
   set total [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE channel=$channel}] 0]
-  set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick=$handle AND channel=$channel}] 0]
+  set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick LIKE $handle AND channel=$channel}] 0]
 
   putserv "PRIVMSG $channel :The quotes database currently holds \002$total\002 quotes."
   putserv "PRIVMSG $channel :You have added \002$by_handle\002 of them."
