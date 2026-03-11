@@ -263,10 +263,16 @@ proc quote_stats { nick host handle channel text } {
   global quotes_db
 
   set total [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE channel=$channel}] 0]
-  set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick LIKE $handle AND channel=$channel}] 0]
+  set msg_total "The quotes database currently holds \002$total\002 quotes."
 
-  putserv "PRIVMSG $channel :The quotes database currently holds \002$total\002 quotes."
-  putserv "PRIVMSG $channel :You have added \002$by_handle\002 of them."
+  set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick LIKE $handle AND channel=$channel}] 0]
+  set msg_by_handle ""
+
+  if {$by_handle > 0} {
+    set msg_by_handle "You have added \002$by_handle\002 of them."
+  }
+
+  putserv "PRIVMSG $channel :$msg_total $msg_by_handle"
 }
 
 proc quote_info { nick host handle channel text } {
