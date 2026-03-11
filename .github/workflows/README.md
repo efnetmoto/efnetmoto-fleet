@@ -11,12 +11,13 @@ Runs on pull requests to the `main` branch.
 **Jobs:**
 
 1. **yaml-lint** - Validates YAML syntax across all files (uses ansible-actions/yamllint-action)
-2. **ansible-lint** - Checks Ansible playbooks and vars for best practices (uses ansible-actions/ansible-lint-action)
-3. **ansible-syntax** - Verifies playbook syntax is valid
-4. **shellcheck** - Lints shell scripts for common issues
-5. **hadolint** - Validates Dockerfiles follow best practices
-6. **markdown-lint** - Checks markdown formatting
-9. **secrets-scan** - Scans for accidentally committed secrets
+1. **ansible-lint** - Checks Ansible playbooks and vars for best practices (uses ansible-actions/ansible-lint-action)
+1. **ansible-syntax** - Verifies playbook syntax is valid
+1. **shellcheck** - Lints shell scripts for common issues
+1. **hadolint** - Validates Dockerfiles follow best practices
+1. **markdown-lint** - Checks markdown formatting
+1. **tclint** - Check TCL formatting
+1. **secrets-scan** - Scans for accidentally committed secrets
 
 ## Linter Configurations
 
@@ -47,6 +48,10 @@ hadolint services/*/Dockerfile
 
 # Markdownlint
 markdownlint '**/*.md'
+
+# TCLint
+tclfmt --check .
+tclint .
 ```
 
 ## Installing Local Tools
@@ -64,6 +69,9 @@ chmod +x /usr/local/bin/hadolint
 
 # Markdownlint (via npm)
 npm install -g markdownlint-cli
+
+# TCLint
+pip install tclint
 ```
 
 ## Skipping CI
