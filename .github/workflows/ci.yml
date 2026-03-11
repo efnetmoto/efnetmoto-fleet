@@ -101,6 +101,24 @@ jobs:
           files: '**/*.md'
           ignore: node_modules
 
+  tcl-lint:
+    name: TCL Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python3 -m venv venv
+          venv/bin/pip install tclint==0.7.0
+
+      - name: Run TCL Lint
+        run: |
+          source venv/bin/activate
+          tclfmt --check .
+          tclint .
+
   secrets-scan:
     name: Secrets Scan
     runs-on: ubuntu-latest
