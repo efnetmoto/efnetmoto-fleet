@@ -13,7 +13,7 @@ backup_ssh_public_keys:
     ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIE21/qmdiKaPGT6KCjYLSapVkXaMx7BhpzkJIXkF7Zxz
     user: tedski
   xerokewl:
-    host: debian-s-1vcpu-1gb-nyc3-01
+    host: motoracing.org
     path: /home/b0g/efnetmoto-fleet/backups
     ssh_public_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPk5ExdRCPqP8ZP7Wn/EtgW6PALk+ceRxMZSMfTc+TQs
     user: b0g
