@@ -75,7 +75,8 @@ proc quote_add {nick host handle channel text} {
     }
 
     set ts [clock seconds]
-    if {[catch {quotes_db eval {INSERT INTO quotes VALUES(NULL, $handle, $nick_host, $title, $text, $channel, $ts)}} err]} {
+    set sql {INSERT INTO quotes VALUES(NULL, $handle, $nick_host, $title, $text, $channel, $ts)}
+    if {[catch {quotes_db eval $sql} err]} {
         if {[string match -nocase "*UNIQUE constraint failed: quotes.title*" $err]} {
             putserv "PRIVMSG $channel :Quote $title already exists."
         } else {
@@ -93,7 +94,10 @@ proc quote_rand {nick host handle channel text} {
     set found 0
     if {$text != ""} {
         set pattern "%[string trim $text]%"
-        quotes_db eval {SELECT * FROM quotes WHERE channel=$channel AND (title LIKE $pattern OR quote LIKE $pattern) ORDER BY RANDOM() LIMIT 1} row {
+        set sql {SELECT * FROM quotes WHERE channel=$channel
+            AND (title LIKE $pattern OR quote LIKE $pattern)
+            ORDER BY RANDOM() LIMIT 1}
+        quotes_db eval $sql row {
       set found 1
     }
     } else {
@@ -115,7 +119,9 @@ proc quote_by_author {nick host handle channel text} {
     set found 0
     if {$text != ""} {
         set pattern "%[string trim $text]%"
-        quotes_db eval {SELECT * FROM quotes WHERE channel=$channel AND nick LIKE $pattern ORDER BY RANDOM() LIMIT 1} row {
+        set sql {SELECT * FROM quotes WHERE channel=$channel
+            AND nick LIKE $pattern ORDER BY RANDOM() LIMIT 1}
+        quotes_db eval $sql row {
       set found 1
     }
     } else {
@@ -263,15 +269,10 @@ proc quote_stats {nick host handle channel text} {
     global quotes_db
 
     set total [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE channel=$channel}] 0]
-    set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick=$handle AND channel=$channel}] 0]
-
-    putserv "PRIVMSG $channel :The quotes database currently holds \002$total\002 quotes."
-    putserv "PRIVMSG $channel :You have added \002$by_handle\002 of them."
-    =======
-    set total [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE channel=$channel}] 0]
     set msg_total "The quotes database currently holds \002$total\002 quotes."
 
-    set by_handle [lindex [quotes_db eval {SELECT COUNT(*) FROM quotes WHERE nick LIKE $handle AND channel=$channel}] 0]
+    set sql {SELECT COUNT(*) FROM quotes WHERE nick LIKE $handle AND channel=$channel}
+    set by_handle [lindex [quotes_db eval $sql] 0]
     set msg_by_handle ""
 
     if {$by_handle > 0} {
@@ -303,7 +304,8 @@ proc quote_delete {nick host handle channel text} {
 
     set text [string tolower [string trim $text]]
     if {![matchattr $handle m|m $channel]} {
-        set owner [lindex [quotes_db eval {SELECT nick FROM quotes WHERE title=$text COLLATE NOCASE}] 0]
+        set sql {SELECT nick FROM quotes WHERE title=$text COLLATE NOCASE}
+        set owner [lindex [quotes_db eval $sql] 0]
         if {$owner != $handle} {
             putserv "NOTICE $nick :You cannot delete that quote."
             return 0
@@ -321,14 +323,19 @@ proc quote_delete {nick host handle channel text} {
 
 proc quote_version {nick host handle channel text} {
     global quote_version
-    putserv "PRIVMSG $channel :This is the QuoteEngine version $quote_version adapted by TedSki, pwnage by bmatt, ruint by eck0 (original script written by JamesOff)"
+    set msg "This is the QuoteEngine version $quote_version"
+    append msg " adapted by TedSki, pwnage by bmatt, ruint by eck0"
+    append msg " (original script written by JamesOff)"
+    putserv "PRIVMSG $channel :$msg"
     return 0
 }
 
 proc quote_help {nick host handle channel text} {
-    putserv "PRIVMSG $nick :Please listen to this entire message, as our options have recently changed."
+    putserv "PRIVMSG $nick :Please listen to this entire message,\
+        as our options have recently changed."
     putserv "PRIVMSG $nick :Commands for the QuoteEngine script: <req'd> \[optional\]"
-    putserv "PRIVMSG $nick :  !addquote <title> <quote text> - adds a quote to the database. Ops only."
+    putserv "PRIVMSG $nick :  !addquote <title> <quote text> -\
+        adds a quote to the database. Ops only."
     putserv "PRIVMSG $nick :  !delquote <title> - deletes a quote. Ops only."
     putserv "PRIVMSG $nick :  !randquote \[search text\] - fetches a random quote"
     putserv "PRIVMSG $nick :  !quote <title> - fetches the quote with <title>"
@@ -337,7 +344,8 @@ proc quote_help {nick host handle channel text} {
     putserv "PRIVMSG $nick :  !quotesearch <text> - finds all quotes containing 'text'"
     putserv "PRIVMSG $nick :  !quotestats - get quote entry information"
     putserv "PRIVMSG $nick :  !quotever - get the version of the script"
-    putserv "PRIVMSG $nick :  Some commands have synonyms and spoonerisms: !getquote !deletequote !searchtitle"
+    putserv "PRIVMSG $nick :  Some commands have synonyms and\
+        spoonerisms: !getquote !deletequote !searchtitle"
     putserv "PRIVMSG $nick :  (End of help)"
     return 0
 }
