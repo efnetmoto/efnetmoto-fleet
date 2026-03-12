@@ -28,6 +28,10 @@ docker compose down
 
 CI linters: `yamllint`, `ansible-lint`, `shellcheck`, `hadolint`, `markdownlint`, `gitleaks`, `tclint`
 
+Before running any linter, verify it is installed (`command -v <tool>`). If a tool is
+missing, do not attempt to install it — tell the user to follow the Dev Prerequisites
+section in `CONTRIBUTING.md`.
+
 ```bash
 # TCL tooling (run locally before pushing)
 tclfmt shared/tcl-scripts/*.tcl   # auto-format in place

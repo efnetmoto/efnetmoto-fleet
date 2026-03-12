@@ -379,6 +379,20 @@ docker compose logs
 - Clean up in same RUN command
 - Document exposed ports and volumes
 
+## Dev Prerequisites
+
+Install these tools on your development workstation to run linters locally.
+
+| Tool | Purpose | Install |
+| --- | --- | --- |
+| `tclint` / `tclfmt` | TCL lint + format | `pip install tclint` |
+| `yamllint` | YAML lint | `pip install yamllint` |
+| `ansible-lint` | Ansible lint | `pip install ansible-lint` |
+| `shellcheck` | Shell script lint | `brew install shellcheck` (macOS) / `sudo apt install shellcheck` (Linux) |
+| `hadolint` | Dockerfile lint | `brew install hadolint` (macOS) / [GitHub Releases](https://github.com/hadolint/hadolint/releases) (Linux) |
+| `markdownlint` | Markdown lint | `npm install -g markdownlint-cli` (requires Node.js) |
+| `jq` | JSON parsing (used by hooks) | `brew install jq` (macOS) / `sudo apt install jq` (Linux) |
+
 ## AI-Assisted Development
 
 This repository is set up for use with [Claude Code](https://claude.ai/claude-code).
