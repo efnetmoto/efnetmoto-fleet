@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tclint:*)",
+      "Bash(tclfmt:*)",
+      "Bash(yamllint:*)",
+      "Bash(ansible-lint:*)",
+      "Bash(ansible-playbook --check:*)",
+      "Bash(ansible-playbook --syntax-check:*)",
+      "Bash(shellcheck:*)",
+      "Bash(markdownlint:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)"
+    ]
+  }
+}

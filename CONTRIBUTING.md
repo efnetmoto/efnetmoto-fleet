@@ -47,6 +47,7 @@ Follow this rule when deciding where data belongs:
 - **Version controlled:** Templates, playbooks, scripts, documentation
 
 When adding features:
+
 - Bot-created files → `.gitignore` and include in backup archives
 - Ansible-generated files → `.gitignore` and do NOT backup (can be regenerated)
 - Static code/templates → Git track, do NOT backup
@@ -377,6 +378,18 @@ docker compose logs
 - Minimize layers
 - Clean up in same RUN command
 - Document exposed ports and volumes
+
+## AI-Assisted Development
+
+This repository is set up for use with [Claude Code](https://claude.ai/claude-code).
+
+- **`CLAUDE.md`** — project guide loaded automatically by Claude Code on every session;
+  the authoritative quick-reference for architecture, commands, and design principles
+- **`.claude/settings.json`** — shared tool permissions committed to the repo; pre-approves
+  safe read-only operations (linters, dry-run deploys, Docker status) so contributors
+  aren't prompted for routine commands
+Personal Claude Code settings (extra permissions, local paths) go in
+`.claude/settings.local.json`, which is gitignored.
 
 ## Questions or Issues?
 

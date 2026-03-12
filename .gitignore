@@ -40,3 +40,10 @@ bots/*/docker-compose.override.yml
 # Ansible
 *.retry
 .ansible/
+
+# Editor swap files
+**/*.swp
+
+# Claude Code personal settings (shared settings.json is committed)
+.claude/settings.local.json
+
