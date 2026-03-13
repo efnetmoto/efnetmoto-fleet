@@ -1,6 +1,6 @@
 services:
   pompone:
-    image: eggdrop:1.9.5
+    image: eggdrop:${EGGDROP_VERSION}
     container_name: pompone
     restart: unless-stopped
 

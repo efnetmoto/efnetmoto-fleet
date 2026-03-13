@@ -95,7 +95,7 @@ New playbook code must work with old backups and existing deployments.
 
 - **Self-documenting:** Include README files in new directories, use clear task names, comment non-obvious logic
 - **Fix forward:** No rollback support - design fixes that can be deployed over broken state
-- **Pin container versions:** Use specific version tags for Docker images (`eggdrop:1.9.5`, not `latest`)
+- **Pin container versions:** Use specific version tags for Docker images (set in `ansible/group_vars/all.yml`, not `latest`)
 - **Flexible host dependencies:** Don't pin OS packages or Ansible versions - support multiple Linux distributions
 
 ## Bot Directory Structure
@@ -261,7 +261,7 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
 
 **Image selection:**
 
-- Use official images when available (`eggdrop:1.9.5`)
+- Use official images when available; pin versions in `ansible/group_vars/all.yml`
 - Pin specific versions, avoid `latest`
 - Build custom services from `services/` directory
 

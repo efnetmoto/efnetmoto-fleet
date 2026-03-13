@@ -1,6 +1,6 @@
 services:
   xerokewl:
-    image: eggdrop:1.9.5
+    image: eggdrop:${EGGDROP_VERSION}
     container_name: xerokewl
     restart: unless-stopped
 

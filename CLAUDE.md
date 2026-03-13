@@ -89,5 +89,5 @@ Backups are pushed to other bots via SSH daily.
 - **Zero-Touch Deployment** — fresh clone + playbook = working bot; backup restore + playbook = working bot
 - **Automation Over Coordination** — no manual steps or out-of-band config sharing between admins
 - **Fix Forward** — no rollback support; design fixes that deploy over broken state
-- **Pin versions** — use specific Docker image tags (`eggdrop:1.9.5`), not `latest`
+- **Pin versions** — use specific Docker image tags, not `latest`; set `eggdrop_version` in `ansible/group_vars/all.yml`
 - **Security by Default** — restrict SSH key permissions with command restrictions; never commit plaintext secrets
