@@ -10,7 +10,7 @@ It's designed to work with the eggdrop container logs and runs with matching UID
 ## User/Group Configuration
 
 - **UID**: 100 (matches eggdrop container)
-- **GID**: 65533 (matches eggdrop container)
+- **GID**: 65534 (nobody — matches eggdrop container)
 
 This allows pisg to read log files created by the eggdrop container.
 

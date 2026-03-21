@@ -16,7 +16,7 @@ RUN apk add --no-cache --virtual build-deps curl && \
     chmod +x /pisg/pisg && \
     rm pisg-${PISG_VERSION}.tar.gz && \
     apk del build-deps && \
-    adduser -S pisg && \
+    adduser -S -u 100 pisg && \
     mkdir -p /cache /config /logs /output && \
     chown -R pisg:nobody /cache /config /logs /output /pisg
 
