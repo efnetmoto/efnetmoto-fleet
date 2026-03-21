@@ -95,7 +95,7 @@ New playbook code must work with old backups and existing deployments.
 
 - **Self-documenting:** Include README files in new directories, use clear task names, comment non-obvious logic
 - **Fix forward:** No rollback support - design fixes that can be deployed over broken state
-- **Pin container versions:** Use specific version tags for Docker images (`eggdrop:1.9.5`, not `latest`)
+- **Pin container versions:** Use specific version tags for Docker images (e.g. `eggdrop:1.10`), not `latest`
 - **Flexible host dependencies:** Don't pin OS packages or Ansible versions - support multiple Linux distributions
 
 ## Bot Directory Structure
@@ -150,8 +150,8 @@ Services are reusable Docker containers that bots can use.
    ```
 
 2. Create `Dockerfile`:
-   - Base on Alpine when possible (matches eggdrop UID/GID)
-   - Use `adduser -S servicename` for user creation
+   - Base on Alpine when possible
+   - For services that share volumes with eggdrop, use UID 100 explicitly: `adduser -S -u 100 servicename`
    - Document environment variables
 
 3. Create `entrypoint.sh` if needed:

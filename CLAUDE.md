@@ -53,7 +53,7 @@ All bots run as peers in an Eggdrop botnet (mesh, no primary/master). Link via D
 **Key directories:**
 
 - `templates/` — shared Jinja2 templates (`eggdrop.conf.j2`, `pisg.cfg.j2`)
-- `services/` — shared Dockerfiles (`pisg/`, `nginx/`)
+- `services/` — shared Dockerfiles (`eggdrop/`, `pisg/`, `nginx/`)
 - `ansible/tasks/` — common task includes (`deploy-prepare.yml`, `deploy-finalize.yml`, etc.)
 - `bots/<BotName>/` — per-bot `docker-compose.yml`, `data/`, `logs/`, `scripts/`
 
@@ -89,5 +89,5 @@ Backups are pushed to other bots via SSH daily.
 - **Zero-Touch Deployment** — fresh clone + playbook = working bot; backup restore + playbook = working bot
 - **Automation Over Coordination** — no manual steps or out-of-band config sharing between admins
 - **Fix Forward** — no rollback support; design fixes that deploy over broken state
-- **Pin versions** — use specific Docker image tags (`eggdrop:1.9.5`), not `latest`
+- **Pin versions** — use specific Docker image tags (e.g. `eggdrop:1.10`), not `latest`
 - **Security by Default** — restrict SSH key permissions with command restrictions; never commit plaintext secrets
