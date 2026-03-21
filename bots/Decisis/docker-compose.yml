@@ -1,6 +1,8 @@
 services:
   decisis:
-    image: eggdrop:1.9.5
+    build:
+      context: ../../services/eggdrop
+      dockerfile: Dockerfile
     container_name: decisis
     restart: unless-stopped
 

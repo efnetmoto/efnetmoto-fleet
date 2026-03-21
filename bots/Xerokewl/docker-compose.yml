@@ -1,6 +1,8 @@
 services:
   xerokewl:
-    image: eggdrop:1.9.5
+    build:
+      context: ../../services/eggdrop
+      dockerfile: Dockerfile
     container_name: xerokewl
     restart: unless-stopped
 
