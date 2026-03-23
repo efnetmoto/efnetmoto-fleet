@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/ash
+# shellcheck shell=dash
 set -e
 
 # Start as root to fix /eggdrop ownership, then drop to the runtime user.
@@ -11,18 +12,25 @@ fi
 
 CONFIG=data/eggdrop.conf
 
+# Activate Python virtualenv
+# shellcheck source=/dev/null
+. /eggdrop/.venv/bin/activate
+
 # Remove stale PID file if present
 PID=$(grep "set pidfile" ${CONFIG})
-if [[ $PID == \#* ]]; then
-  PIDNEXT=$(grep "set botnet-nick" ${CONFIG})
-  if [[ $PIDNEXT == \#* ]]; then
-    PIDNEXT=$(grep "set nick" ${CONFIG})
-  fi
-  PIDBASE=$(echo $PIDNEXT | awk '{gsub("\"", "", $3); print $3}')
-  PID="pid.$PIDBASE"
-else
-  PID=$(echo $PID | awk '{gsub("\"", "", $3); print $3}')
-fi
+case "$PID" in
+  \#*)
+    PIDNEXT=$(grep "set botnet-nick" ${CONFIG})
+    case "$PIDNEXT" in
+      \#*) PIDNEXT=$(grep "set nick" ${CONFIG}) ;;
+    esac
+    PIDBASE=$(echo $PIDNEXT | awk '{gsub("\"", "", $3); print $3}')
+    PID="pid.$PIDBASE"
+    ;;
+  *)
+    PID=$(echo $PID | awk '{gsub("\"", "", $3); print $3}')
+    ;;
+esac
 if [ -e "$PID" ]; then
   echo "Found $PID, removing..."
   rm "$PID"

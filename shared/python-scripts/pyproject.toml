@@ -1,0 +1,29 @@
+# Runtime deps are intentionally duplicated in services/eggdrop-python/pyproject.toml
+# (Docker image deps). Keep both in sync when adding or updating runtime dependencies.
+[project]
+name = "eggdrop-weather"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "responses",
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]  # pycodestyle, pyflakes, isort
+
+[tool.ruff.lint.per-file-ignores]
+"weather.py" = ["F821"]  # eggdrop globals (putserv, putlog, bind) are injected at runtime
+"tests/weather/test_prefs.py" = ["E402"]  # sys.modules patching must precede local imports
+
+[tool.ruff.format]
+# black-compatible formatter

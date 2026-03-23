@@ -1,0 +1,24 @@
+{
+  "location": {
+    "name": "San Francisco",
+    "region": "California"
+  },
+  "forecast": {
+    "forecastday": [
+      {
+        "date": "2023-11-14",
+        "day": {
+          "maxtemp_c": 19.0,
+          "maxtemp_f": 66.2,
+          "mintemp_c": 11.0,
+          "mintemp_f": 51.8,
+          "condition": {
+            "text": "Partly Cloudy",
+            "icon": "//cdn.weatherapi.com/weather/64x64/day/116.png",
+            "code": 1003
+          }
+        }
+      }
+    ]
+  }
+}

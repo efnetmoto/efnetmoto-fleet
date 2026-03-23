@@ -6,6 +6,7 @@
   vars_files:
     - ansible/group_vars/all.yml
     - ansible/group_vars/backup_ssh_keys.yml
+    - ansible/group_vars/vault.yml
     - ansible/host_vars/localhost/xerokewl.yml
 
   tasks:

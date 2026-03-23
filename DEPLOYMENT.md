@@ -398,12 +398,34 @@ ls -la bots/<botname>/data/
 
 All files should be owned by the user running the Ansible playbooks.
 
+## Ansible Vault Setup
+
+Only required if you are deploying Xerokewl. Decisis and Pompone have no vaulted
+variables and deploy without this step.
+
+The vault password is shared among bot owners out of band — get it from another
+bot owner. Once you have it, create two files:
+
+```bash
+echo "the-vault-password" > .ansible/vault_pass
+chmod 600 .ansible/vault_pass
+```
+
+```ini
+# ansible.cfg (repo root)
+[defaults]
+vault_password_file = .ansible/vault_pass
+```
+
+Both files are gitignored and never committed. With `ansible.cfg` in place,
+Xerokewl deploys pick up the vault password automatically.
+
 ## Security Considerations
 
 - **SSH Keys:** Private keys never leave your host. Only public keys are committed.
 - **Backup Files:** Contain sensitive data (user passwords, channel keys). Stored with 0600 permissions.
 - **Docker Compose Overrides:** Can contain sensitive configuration. These files are gitignored.
-- **Ansible Vault:** Not currently used, but available for highly sensitive data if needed.
+- **Ansible Vault:** Used for the WeatherAPI key (`vault_weatherapi_key` in `ansible/group_vars/vault.yml`).
 
 ## Getting Help
 

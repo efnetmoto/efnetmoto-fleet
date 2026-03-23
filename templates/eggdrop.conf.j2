@@ -98,7 +98,6 @@ set mod-path "modules/"
 loadmodule pbkdf2
 loadmodule blowfish
 set blowfish-use-mode ecb
-loadmodule ident
 
 loadhelp userinfo.help
 
@@ -238,9 +237,11 @@ set console-autosave 1
 set force-channel 0
 set info-party 0
 
+loadmodule python
+
 ## Scripts
 {% for script in bot_scripts %}
-source {{ script }}
+{{- 'pysource' if script.endswith('.py') else 'source' }} {{ script }}
 {% endfor %}
 
 {% if extra_config is defined and extra_config | length > 0 %}

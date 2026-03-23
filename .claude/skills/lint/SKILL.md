@@ -15,5 +15,7 @@ Run each available tool:
 3. `shellcheck setup.sh services/*/entrypoint.sh`
 4. `markdownlint '**/*.md'`
 5. `tclint shared/tcl-scripts/*.tcl`
+6. `uv run --python 3.12 --extra dev ruff check shared/python-scripts/` (check with `command -v uv`)
+7. `uv run --python 3.12 --extra dev ruff format --check shared/python-scripts/`
 
 Report a pass/fail/missing summary at the end. For failures, show errors and offer to fix them.

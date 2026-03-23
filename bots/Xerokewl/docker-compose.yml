@@ -26,10 +26,14 @@ services:
       # Shared TCL scripts (from repo root)
       - ../../shared/tcl-scripts:/eggdrop/scripts-shared
 
+      # Shared Python scripts (from repo root)
+      - ../../shared/python-scripts:/eggdrop/scripts-python-shared
+
     environment:
       - TZ=${TZ}
       - EGGDROP_UID=${UID}
       - EGGDROP_GID=${GID}
+      - WEATHERAPI_KEY=${WEATHERAPI_KEY}
 
     networks:
       - xerokewl-net

@@ -1,0 +1,29 @@
+[
+  {
+    "metar_id": 12345678,
+    "icaoId": "KSFO",
+    "receiptTime": "2023-11-14 20:00:00",
+    "obsTime": 1700000000,
+    "reportTime": "2023-11-14 20:00:00",
+    "temp": 16.0,
+    "dewp": 9.0,
+    "wdir": 280,
+    "wspd": 13,
+    "wgst": null,
+    "visib": "10",
+    "altim": 1013.0,
+    "slp": null,
+    "qcField": 4,
+    "wxString": null,
+    "skyCondition": [{"skyCover": "FEW", "cloudBase": 2000}],
+    "flight_category": "VFR",
+    "rawOb": "KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130",
+    "mostRecent": 1,
+    "lat": 37.619,
+    "lon": -122.375,
+    "elev": 4,
+    "prior": 0,
+    "name": "San Francisco, San Francisco International Airport",
+    "clouds": [{"cover": "FEW", "base": 2000}]
+  }
+]
