@@ -36,6 +36,16 @@ section in `CONTRIBUTING.md`.
 # TCL tooling (run locally before pushing)
 tclfmt shared/tcl-scripts/*.tcl   # auto-format in place
 tclint shared/tcl-scripts/*.tcl   # lint check (max line length 100, unbraced-expr enforced)
+
+# Python tests (run from shared/python-scripts/)
+cd shared/python-scripts
+uv run --python 3.12 --extra dev pytest tests/ -v
+
+# Python lint + format (ruff — run from shared/python-scripts/)
+cd shared/python-scripts
+uv run --python 3.12 --extra dev ruff check .        # lint
+uv run --python 3.12 --extra dev ruff format .       # auto-format in place
+uv run --python 3.12 --extra dev ruff format --check . # dry-run (CI mode)
 ```
 
 ## Architecture
@@ -54,6 +64,8 @@ All bots run as peers in an Eggdrop botnet (mesh, no primary/master). Link via D
 
 - `templates/` — shared Jinja2 templates (`eggdrop.conf.j2`, `pisg.cfg.j2`)
 - `services/` — shared Dockerfiles (`eggdrop/`, `pisg/`)
+- `shared/tcl-scripts/` — TCL scripts available to all bots via volume mount
+- `shared/python-scripts/` — Python scripts available to all bots via volume mount (`weather.py` entry point + `weather/` package)
 - `ansible/tasks/` — common task includes (`deploy-prepare.yml`, `deploy-finalize.yml`, etc.)
 - `bots/<BotName>/` — per-bot `docker-compose.yml`, `data/`, `logs/`, `scripts/`
 
@@ -63,9 +75,10 @@ Lowest → highest priority:
 
 1. `ansible/group_vars/all.yml` — IRC network, server lists, channels, common DCC settings
 2. `ansible/group_vars/backup_ssh_keys.yml` — SSH public key inventory for offsite backups
-3. `ansible/host_vars/localhost/<botname>.yml` — bot identity, ports, service flags
-4. `ansible/host_vars/localhost/overrides.yml` — **gitignored** local overrides (copy from `overrides.yml.example`)
-5. CLI `-e` flags
+3. `ansible/group_vars/vault.yml` — **Ansible Vault** encrypted secrets
+4. `ansible/host_vars/localhost/<botname>.yml` — bot identity, ports, service flags
+5. `ansible/host_vars/localhost/overrides.yml` — **gitignored** local overrides (copy from `overrides.yml.example`)
+6. CLI `-e` flags
 
 `overrides.yml` is the right place for local customization — it never creates a git diff.
 

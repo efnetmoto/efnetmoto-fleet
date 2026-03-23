@@ -394,6 +394,8 @@ Install these tools on your development workstation to run linters locally.
 | `hadolint` | Dockerfile lint | `brew install hadolint` (macOS) / [GitHub Releases](https://github.com/hadolint/hadolint/releases) (Linux) |
 | `markdownlint` | Markdown lint | `npm install -g markdownlint-cli` (requires Node.js) |
 | `jq` | JSON parsing (used by hooks) | `brew install jq` (macOS) / `sudo apt install jq` (Linux) |
+| `uv` | Python toolchain — used to run tests and ruff (`uv run pytest`, `uv run ruff`) | `brew install uv` (macOS) / [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) |
+| `ruff` | Python lint + format (included in dev deps — no separate install needed) | `uv run --extra dev ruff ...` from `shared/python-scripts/` |
 
 ## AI-Assisted Development
 

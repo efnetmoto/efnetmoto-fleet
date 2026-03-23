@@ -26,6 +26,7 @@ environment_variables:
   dcc_port: *dcc_port
   tz: "America/Los_Angeles"
   dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end }}"
+  weatherapi_key: "{{ vault_weatherapi_key }}"
 
 # Runtime directories to create
 runtime_dirs:
@@ -42,3 +43,4 @@ bot_scripts:
   - "scripts/userinfo.tcl"
   - "scripts/quotepong.tcl"
   - "scripts-shared/quoteengine.tcl"
+  - "scripts-python-shared/weather.py"

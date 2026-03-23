@@ -6,12 +6,13 @@ Custom eggdrop container built from source.
 
 Eggdrop is built from source rather than using the upstream Docker image. This allows the
 container to run unprivileged and takes advantage of multi-stage builds to keep the runtime
-image lean.
+image lean. The image includes a Python virtual environment managed by `uv` for use by
+Python-based bot scripts.
 
 ## Build
 
-Multi-stage build: the builder stage compiles eggdrop, the runtime stage copies only the
-compiled installation and its runtime dependencies.
+Multi-stage build: the builder stage compiles eggdrop against Python and TCL, the runtime stage
+copies only the compiled installation and its runtime dependencies.
 
 Source is verified against the eggheads GPG key before building.
 
@@ -27,6 +28,15 @@ environment variables, written to each bot's `.env` by Ansible from `ansible_use
 - `/eggdrop/data` - Persistent bot data (userfile, chanfile, config)
 - `/eggdrop/logs` - Bot and channel logs
 - `/eggdrop/scripts-shared` - Shared TCL scripts (from repo root)
+- `/eggdrop/scripts-python-shared` - Python scripts
+
+## Python Environment
+
+A virtual environment is created at `/eggdrop/.venv` during image build. Dependencies are
+installed from `shared/python-scripts/pyproject.toml` via `uv sync --frozen --no-dev`.
+
+To add or update Python dependencies, update `shared/python-scripts/pyproject.toml` and
+`uv.lock`, then rebuild the image.
 
 ## Build Arguments
 
@@ -45,6 +55,7 @@ pompone:
     - ./data:/eggdrop/data
     - ./logs:/eggdrop/logs
     - ../../shared/tcl-scripts:/eggdrop/scripts-shared
+    - ../../shared/python-scripts:/eggdrop/scripts-python-shared
   environment:
     - TZ=${TZ}
     - EGGDROP_UID=${UID}

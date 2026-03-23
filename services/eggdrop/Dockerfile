@@ -13,6 +13,7 @@ RUN apk add --no-cache --virtual egg-deps \
     curl \
     gnupg \
     openssl-dev \
+    python3-dev \
     tcl-dev \
     tar \
     zlib-dev \
@@ -40,6 +41,8 @@ RUN apk add --no-cache \
     ca-certificates \
     libstdc++ \
     openssl \
+    python3 \
+    sqlcipher-tcl \
     su-exec \
     tcl \
     zlib
@@ -50,11 +53,18 @@ COPY --from=builder /opt/eggdrop /eggdrop
 # hadolint ignore=SC3009
 RUN mkdir -p /eggdrop/data \
     && mkdir -p /eggdrop/logs \
-    && mkdir -p /eggdrop/scripts-shared
+    && mkdir -p /eggdrop/scripts-shared \
+    && mkdir -p /eggdrop/scripts-python-shared
 
 WORKDIR /eggdrop
 
-COPY entrypoint.sh /entrypoint.sh
+# Install Python dependencies
+COPY --from=ghcr.io/astral-sh/uv:0.5.29 /uv /usr/local/bin/uv
+COPY shared/python-scripts/pyproject.toml shared/python-scripts/uv.lock /eggdrop/
+RUN uv venv /eggdrop/.venv \
+    && uv sync --frozen --no-dev
+
+COPY services/eggdrop/entrypoint.sh /entrypoint.sh
 RUN chmod 0755 /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

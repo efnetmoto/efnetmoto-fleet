@@ -40,10 +40,17 @@ bots/*/docker-compose.override.yml
 # Ansible
 *.retry
 .ansible/
+ansible.cfg
 
 # Editor swap files
 **/*.swp
 
+# Python bytecode and uv artifacts
+**/__pycache__/
+**/*.pyc
+
 # Claude Code personal settings (shared settings.json is committed)
 .claude/settings.local.json
+.claude/plans
+.claude/memory
 

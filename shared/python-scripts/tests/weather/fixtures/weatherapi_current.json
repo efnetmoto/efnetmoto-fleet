@@ -1,0 +1,41 @@
+{
+  "location": {
+    "name": "San Francisco",
+    "region": "California",
+    "country": "United States of America",
+    "lat": 37.775,
+    "lon": -122.4183,
+    "tz_id": "America/Los_Angeles",
+    "localtime_epoch": 1700000000,
+    "localtime": "2023-11-14 12:00"
+  },
+  "current": {
+    "last_updated_epoch": 1700000000,
+    "last_updated": "2023-11-14 12:00",
+    "temp_c": 16.0,
+    "temp_f": 60.8,
+    "is_day": 1,
+    "condition": {
+      "text": "Partly Cloudy",
+      "icon": "//cdn.weatherapi.com/weather/64x64/day/116.png",
+      "code": 1003
+    },
+    "wind_mph": 9.4,
+    "wind_kph": 15.1,
+    "wind_degree": 280,
+    "wind_dir": "W",
+    "pressure_mb": 1013.0,
+    "pressure_in": 29.91,
+    "precip_mm": 0.0,
+    "precip_in": 0.0,
+    "humidity": 72,
+    "cloud": 50,
+    "feelslike_c": 14.9,
+    "feelslike_f": 58.8,
+    "vis_km": 16.0,
+    "vis_miles": 10.0,
+    "uv": 3.0,
+    "gust_mph": 12.1,
+    "gust_kph": 19.5
+  }
+}
