@@ -13,6 +13,8 @@ _DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 _ICAO_PREFIXES = frozenset("KPTELHUFORSVYWZ")
 
 _ZIP_RE = re.compile(r"^\d{5}(-\d{4})?$")
+_AMBIENT_URL_RE = re.compile(r"^https?://ambientweather\.net/dashboard/([0-9a-f]{32})$")
+_AMBIENT_SLUG_RE = re.compile(r"^[0-9a-f]{32}$")
 
 
 def _load_iata_codes() -> frozenset[str]:
@@ -26,10 +28,21 @@ _IATA_CODES = _load_iata_codes()
 
 def classify(raw: str) -> LocationResult:
     stripped = raw.strip()
-    normalized = stripped.upper()
 
-    if not normalized:
+    if not stripped:
         raise ResolverError("no_input")
+
+    # Ambient URL must be checked on the original-cased stripped input before uppercasing
+    m = _AMBIENT_URL_RE.match(stripped)
+    if m:
+        slug = m.group(1)
+        return LocationResult(type=LocationType.AMBIENT_URL, query=slug, raw=stripped)
+
+    # Ambient slug must be checked before uppercasing (slugs are lowercase hex)
+    if _AMBIENT_SLUG_RE.match(stripped):
+        return LocationResult(type=LocationType.AMBIENT_SLUG, query=stripped, raw=stripped)
+
+    normalized = stripped.upper()
 
     if _ZIP_RE.match(normalized):
         return LocationResult(type=LocationType.ZIP, query=normalized, raw=stripped)

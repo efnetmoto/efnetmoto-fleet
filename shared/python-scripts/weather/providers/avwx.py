@@ -2,37 +2,10 @@ import math
 
 import requests
 
+from weather.conversions import degrees_to_cardinal
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
-
-# Degrees to cardinal wind direction
-_WIND_DIRS = [
-    "N",
-    "NNE",
-    "NE",
-    "ENE",
-    "E",
-    "ESE",
-    "SE",
-    "SSE",
-    "S",
-    "SSW",
-    "SW",
-    "WSW",
-    "W",
-    "WNW",
-    "NW",
-    "NNW",
-]
-
-
-def _degrees_to_cardinal(degrees: str | float | int) -> str:
-    try:
-        idx = round(float(degrees) / 22.5) % 16
-        return _WIND_DIRS[idx]
-    except (TypeError, ValueError):
-        return str(degrees)
 
 
 def _humidity_from_dewpoint(temp_c: float, dewp_c: float) -> int:
@@ -61,7 +34,7 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
     elif wdir == "VRB":
         wind_dir = "VRB"
     else:
-        wind_dir = _degrees_to_cardinal(wdir)
+        wind_dir = degrees_to_cardinal(wdir)
 
     wspd_kts = float(obs.get("wspd") or 0)
     wind_mph = round(wspd_kts * 1.15078, 1)
