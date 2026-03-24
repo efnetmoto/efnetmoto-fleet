@@ -21,9 +21,11 @@ sys.modules["eggdrop.tcl"] = _eggdrop_mock.tcl
 _putserv = MagicMock()
 _putlog = MagicMock()
 _bind = MagicMock(return_value=MagicMock())
+_validuser = MagicMock(return_value=1)
 _eggdrop_mock.bind = _bind
 _eggdrop_mock.tcl.putserv = _putserv
 _eggdrop_mock.tcl.putlog = _putlog
+_eggdrop_mock.tcl.validuser = _validuser
 
 # WEATHERAPI_KEY must be set before weather.py is imported (WeatherAPIProvider checks at init)
 os.environ.setdefault("WEATHERAPI_KEY", "test-key")
@@ -40,6 +42,8 @@ _spec.loader.exec_module(w)
 def reset_mocks():
     _putserv.reset_mock()
     _putlog.reset_mock()
+    _validuser.reset_mock()
+    _validuser.return_value = 1  # registered by default
 
 
 # handle_wzset — unrecognized user
@@ -81,3 +85,66 @@ def test_wz_with_location_unregistered_user_allowed():
         w.handle_wz("SomeNick", "host@example.com", "*", "#moto", "94025")
         msg = _putserv.call_args[0][0]
         assert "registered" not in msg
+
+
+# handle_wz --user flag
+
+
+def test_wz_user_registered_with_location():
+    """--user foo fetches weather for foo's saved location."""
+    from weather.models import Units, UserPref
+
+    pref = UserPref(location="Denver, CO", metar=False, units=Units.METRIC)
+    with (
+        patch.object(w.prefs, "get_pref", return_value=pref),
+        patch.object(w.resolver, "classify", return_value=MagicMock()) as mock_classify,
+        patch.object(w._router, "route", side_effect=Exception("stop here")),
+    ):
+        w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo")
+        mock_classify.assert_called_once_with("Denver, CO")
+
+
+def test_wz_user_not_registered():
+    """--user foo where foo is unknown reports an error in channel."""
+    _validuser.return_value = 0
+    w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo")
+    _putserv.assert_called_once()
+    msg = _putserv.call_args[0][0]
+    assert "foo" in msg
+    assert "not registered" in msg
+
+
+def test_wz_user_registered_no_location():
+    """--user foo where foo has no saved location reports an error in channel."""
+    from weather.models import Units, UserPref
+
+    pref = UserPref(location=None, metar=False, units=Units.METRIC)
+    with patch.object(w.prefs, "get_pref", return_value=pref):
+        w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo")
+    _putserv.assert_called_once()
+    msg = _putserv.call_args[0][0]
+    assert "foo" in msg
+    assert "no default location" in msg
+
+
+def test_wz_user_with_explicit_imperial_overrides_pref():
+    """--user foo --imperial uses foo's location but imperial units regardless of foo's pref."""
+    from weather.models import Units, UserPref
+
+    pref = UserPref(location="94025", metar=False, units=Units.METRIC)
+    with (
+        patch.object(w.prefs, "get_pref", return_value=pref),
+        patch.object(w, "_do_fetch_weather") as mock_fetch,
+    ):
+        w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo --imperial")
+    mock_fetch.assert_called_once()
+    # units is the 4th positional arg (index 3): nick, handle, metar, units, ...
+    assert mock_fetch.call_args[0][3] == Units.IMPERIAL
+
+
+def test_wz_user_combined_with_location_rejected():
+    """--user foo Denver is rejected — cannot combine --user with a location query."""
+    w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo Denver")
+    _putserv.assert_called_once()
+    msg = _putserv.call_args[0][0]
+    assert "--user cannot be combined" in msg

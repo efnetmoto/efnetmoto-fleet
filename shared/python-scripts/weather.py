@@ -74,6 +74,25 @@ def parse_flags(text: str) -> tuple[bool, Units, str, bool]:
     return metar, units, " ".join(remaining), units_explicit
 
 
+def _extract_user_flag(text: str) -> tuple[str | None, str]:
+    """Remove --user <name> from text; return (name_or_none, remaining_text)."""
+    tokens = text.split()
+    user = None
+    remaining = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i] == "--user":
+            if i + 1 < len(tokens):
+                user = tokens[i + 1]
+                i += 2
+            else:
+                i += 1
+        else:
+            remaining.append(tokens[i])
+            i += 1
+    return user, " ".join(remaining)
+
+
 def _pref_to_str(pref: UserPref) -> str:
     """Human-readable summary of a saved pref for confirmation messages."""
     parts = []
@@ -93,8 +112,21 @@ def _do_fetch_weather(
     query: str,
     units_explicit: bool,
     channel: str,
+    target_user: str | None = None,
 ) -> None:
-    if not query:
+    if target_user:
+        if not validuser(target_user):
+            putserv(f"PRIVMSG {channel} :{nick}: {target_user} is not registered with the bot.")
+            return
+        pref = prefs.get_pref(target_user)
+        if pref is None or pref.location is None:
+            putserv(f"PRIVMSG {channel} :{nick}: {target_user} has no default location set.")
+            return
+        query = pref.location
+        metar = pref.metar
+        if not units_explicit:
+            units = pref.units
+    elif not query:
         if handle == "*":
             putserv(
                 f"PRIVMSG {channel} :{nick}: You must be registered with the bot"
@@ -161,13 +193,22 @@ def _do_fetch_weather(
 
 def handle_wz(nick: str, host: str, handle: str, channel: str, text: str) -> None:
     try:
+        target_user, text = _extract_user_flag(text)
+
         try:
             metar, units, query, units_explicit = parse_flags(text)
         except ParseFlagsError as e:
             putserv(f"PRIVMSG {channel} :{nick}: {e}")
             return
 
-        _do_fetch_weather(nick, handle, metar, units, query, units_explicit, channel)
+        if target_user and query:
+            putserv(
+                f"PRIVMSG {channel} :{nick}: --user cannot be combined with a location query."
+                f" Try .wz --user {target_user}"
+            )
+            return
+
+        _do_fetch_weather(nick, handle, metar, units, query, units_explicit, channel, target_user)
 
     except Exception:
         putlog(f"weather: unhandled exception in handle_wz:\n{traceback.format_exc()}")
@@ -242,6 +283,7 @@ HELP_LINES = [
     "Weather commands:",
     "  .w/.wz [--metar] [--metric|--imperial] <location>  — get weather",
     "  .w/.wz                                              — use your saved default",
+    "  .w/.wz --user <nick>                                — use another user's saved default",
     "  .wzset [--metar] [--metric|--imperial] <location>  — save a default location",
     "  .wzset --metric|--imperial                         — update saved units only",
     "  .wzhelp                                             — this message",
