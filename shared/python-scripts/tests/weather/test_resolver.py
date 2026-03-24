@@ -73,3 +73,39 @@ def test_raw_preserved():
 def test_query_normalized():
     r = classify("sfo")
     assert r.query == "SFO"
+
+
+def test_ambient_slug():
+    r = classify("3602d35f96fb9f73b9f34c87a0279116")
+    assert r.type == LocationType.AMBIENT_SLUG
+
+
+def test_ambient_url_https():
+    r = classify("https://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116")
+    assert r.type == LocationType.AMBIENT_URL
+    assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
+
+
+def test_ambient_url_http():
+    r = classify("http://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116")
+    assert r.type == LocationType.AMBIENT_URL
+    assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
+
+
+def test_ambient_url_query_is_bare_slug():
+    url = "https://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116"
+    r = classify(url)
+    assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
+    assert r.raw == url
+
+
+def test_uppercase_32char_not_ambient_slug():
+    # 32 chars but uppercase — not a valid slug
+    r = classify("ABCD1234ABCD1234ABCD1234ABCD1234")
+    assert r.type == LocationType.CITY_STATE
+
+
+def test_31char_hex_not_ambient_slug():
+    # 31 chars — too short
+    r = classify("3602d35f96fb9f73b9f34c87a027911")
+    assert r.type == LocationType.CITY_STATE

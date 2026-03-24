@@ -7,6 +7,8 @@ class LocationType(Enum):
     CITY_STATE = auto()
     IATA = auto()
     ICAO = auto()
+    AMBIENT_SLUG = auto()  # 32-char lowercase hex slug
+    AMBIENT_URL = auto()  # full ambientweather.net dashboard URL
 
 
 class Units(Enum):
@@ -23,8 +25,8 @@ class LocationResult:
 
 @dataclass
 class WeatherResult:
+    # Required — every provider must populate these
     location_name: str  # e.g. "San Mateo, California"
-    condition: str  # e.g. "Partly Cloudy"
     temp_f: float
     feels_like_f: float | None  # None for METAR (not available)
     temp_c: float
@@ -33,12 +35,17 @@ class WeatherResult:
     wind_dir: str  # e.g. "NW"
     wind_mph: float
     wind_kph: float
-    wind_gust_mph: float | None
-    wind_gust_kph: float | None
-    visibility_mi: float | None  # None when METAR reports unrestricted (9999)
-    visibility_km: float | None  # None when METAR reports unrestricted (9999)
+
+    # Optional — not available from all providers
+    condition: str | None = None  # not available from PWS
+    wind_gust_mph: float | None = None
+    wind_gust_kph: float | None = None
+    visibility_mi: float | None = None  # not available from PWS or METAR
+    visibility_km: float | None = None  # not available from PWS or METAR
     uv_index: float | None = None
-    metar_raw: str | None = None  # populated only by AvWxProvider
+    metar_raw: str | None = None  # AvWxProvider only
+    rain_today_in: float | None = None  # AmbientProvider only
+    rain_today_mm: float | None = None  # AmbientProvider only
 
 
 @dataclass
