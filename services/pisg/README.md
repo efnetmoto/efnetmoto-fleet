@@ -5,14 +5,13 @@ Docker container for pisg (Perl IRC Statistics Generator).
 ## Overview
 
 This container processes IRC channel logs and generates HTML statistics pages.
-It's designed to work with the eggdrop container logs and runs with matching UID/GID for file access.
+It's designed to work with the eggdrop container logs.
 
 ## User/Group Configuration
 
-- **UID**: 100 (matches eggdrop container)
-- **GID**: 65534 (nobody — matches eggdrop container)
-
-This allows pisg to read log files created by the eggdrop container.
+The container runs as whatever user is specified by the Docker Compose `user:` directive,
+matching the host user running the fleet. This ensures consistent file permissions across
+all services without UID hardcoding in the image.
 
 ## Volumes
 
@@ -28,7 +27,6 @@ This allows pisg to read log files created by the eggdrop container.
 ## Configuration File
 
 The container requires a `pisg.cfg` file mounted at `/config/pisg.cfg`. Example:
-
 ```text
 <set>
   Logdir = "/logs/"
@@ -44,7 +42,6 @@ The container requires a `pisg.cfg` file mounted at `/config/pisg.cfg`. Example:
 ```
 
 ## Usage in docker-compose.yml
-
 ```yaml
 pisg:
   build:
@@ -52,6 +49,7 @@ pisg:
     dockerfile: Dockerfile
   container_name: pompone-pisg
   restart: unless-stopped
+  user: "${UID}:${GID}"
   volumes:
     - ./logs/channels:/logs:ro
     - ./pisg-cache:/cache
@@ -66,7 +64,6 @@ pisg:
 Pisg supports multiple log formats. For eggdrop logs, use `Format = "eggdrop"` in your config.
 
 The logfile path in pisg.cfg can use wildcards to process dated logs:
-
 ```text
 Logfile = "/logs/motorcycles.log.*"
 ```

@@ -95,7 +95,7 @@ New playbook code must work with old backups and existing deployments.
 
 - **Self-documenting:** Include README files in new directories, use clear task names, comment non-obvious logic
 - **Fix forward:** No rollback support - design fixes that can be deployed over broken state
-- **Pin container versions:** Use specific version tags for Docker images (e.g. `eggdrop:1.10`), not `latest`
+- **Pin container versions:** Use specific version tags for Docker images (e.g. `nginx:alpine3.23-slim`), not `latest`
 - **Flexible host dependencies:** Don't pin OS packages or Ansible versions - support multiple Linux distributions
 
 ## Bot Directory Structure
@@ -150,9 +150,11 @@ Services are reusable Docker containers that bots can use.
    ```
 
 2. Create `Dockerfile`:
-   - Base on Alpine when possible
-   - For services that share volumes with eggdrop, use UID 100 explicitly: `adduser -S -u 100 servicename`
+   - Base on Alpine when possible (check other images for version)
    - Document environment variables
+   - Do NOT use a `USER` directive — identity is set at runtime via `EGGDROP_UID`/`EGGDROP_GID`
+     and a `su-exec` privilege drop in the entrypoint
+   - Use multi-stage builds to separate build-deps from runtime deps
 
 3. Create `entrypoint.sh` if needed:
    - Make it executable
@@ -261,7 +263,7 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
 
 **Image selection:**
 
-- Use official images when available (`eggdrop:1.9.5`)
+- Use official images when available (`nginx:alpine3.23-slim`)
 - Pin specific versions, avoid `latest`
 - Build custom services from `services/` directory
 
@@ -360,7 +362,7 @@ docker compose logs
 
 **Shell scripts:**
 
-- Use `#!/bin/bash` for bash, `#!/bin/sh` for POSIX sh
+- Use `#!/bin/ash` for Alpine entrypoints, `#!/bin/sh` for POSIX sh elsewhere
 - Include `set -e` for error handling
 - Comment complex logic
 - Use descriptive variable names

@@ -1,46 +1,55 @@
 # eggdrop Service
 
-Custom eggdrop container based on `eggdrop:1.10` with UID adjusted to match other fleet services.
+Custom eggdrop container built from source.
 
-## Purpose
+## Overview
 
-Runs the Eggdrop IRC bot. This is the canonical base image for all bots in the fleet. The container
-runs with UID 100 to maintain consistency with other fleet services and to preserve file access
-permissions on existing runtime data on disk.
+Eggdrop is built from source rather than using the upstream Docker image. This allows the
+container to run unprivileged and takes advantage of multi-stage builds to keep the runtime
+image lean.
 
-## UID/GID Configuration
+## Build
 
-- **UID**: 100 (remapped from upstream 1.10's UID 3333)
-- **GID**: eggdrop group (inherited from base image)
+Multi-stage build: the builder stage compiles eggdrop, the runtime stage copies only the
+compiled installation and its runtime dependencies.
 
-All bot runtime data (userfiles, channel files, logs) on disk is owned by UID 100. Remapping
-preserves that without requiring a chown of existing data across the fleet.
+Source is verified against the eggheads GPG key before building.
 
-## Implementation
+## User/Group Configuration
 
-Uses `usermod` from Alpine's `shadow` package to change the existing eggdrop user's UID to 100,
-then removes the shadow package to keep image size minimal. This approach:
+The entrypoint starts as root, chowns `/eggdrop` to the target user, then re-execs as that
+user via `su-exec`. The target UID and GID are passed as `EGGDROP_UID` and `EGGDROP_GID`
+environment variables, written to each bot's `.env` by Ansible from `ansible_user_uid` and
+`ansible_user_gid`.
 
-- Preserves all upstream eggdrop user configuration
-- Only modifies the UID that needs changing
-- GID is intentionally left as-is; shared volume access is UID-based only
+## Volumes
+
+- `/eggdrop/data` - Persistent bot data (userfile, chanfile, config)
+- `/eggdrop/logs` - Bot and channel logs
+- `/eggdrop/scripts-shared` - Shared TCL scripts (from repo root)
+
+## Build Arguments
+
+- `EGGDROP_VERSION` - Eggdrop version to build (default: `1.10.1`)
 
 ## Usage in docker-compose.yml
 ```yaml
-botname:
+pompone:
   build:
-    context: ../../services/eggdrop
-    dockerfile: Dockerfile
+    context: ../..
+    dockerfile: services/eggdrop/Dockerfile
+  container_name: pompone
+  restart: unless-stopped
   stdin_open: true
   volumes:
-    - ./data:/home/eggdrop/eggdrop/data
-    - ./logs:/home/eggdrop/eggdrop/logs
+    - ./data:/eggdrop/data
+    - ./logs:/eggdrop/logs
+    - ../../shared/tcl-scripts:/eggdrop/scripts-shared
+  environment:
+    - TZ=${TZ}
+    - EGGDROP_UID=${UID}
+    - EGGDROP_GID=${GID}
 ```
-
-## Base Image
-
-Uses official `eggdrop:1.10` as the base. All default configuration, entrypoint, and command
-are inherited unchanged.
 
 ## Exposed Ports
 
