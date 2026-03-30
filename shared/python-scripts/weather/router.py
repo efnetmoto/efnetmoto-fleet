@@ -39,6 +39,13 @@ class ProviderRouter:
                 f" For general weather use the IATA code instead (e.g. .wz SFO)."
             )
 
+        if metar and loc.type != LocationType.ICAO:
+            raise ProviderError(
+                "METAR output requires 3-digit ICAO codes as input."
+                " See https://en.wikipedia.org/wiki/List_of_airports_by_ICAO_code:_A"
+                " for a complete list."
+            )
+
         if loc.type in _AMBIENT_TYPES:
             for p in self._providers:
                 if isinstance(p, AmbientProvider):
