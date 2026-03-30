@@ -300,7 +300,7 @@ HELP_LINES = [
 ]
 
 
-def handle_wzhelp(nick: str, host: str, handle: str, channel: str, text: str) -> None:
+def handle_wzhelp(nick: str, host: str, handle: str, channel: str, text: str | None = None) -> None:
     try:
         for line in HELP_LINES:
             putserv(f"PRIVMSG {nick} :{line}")
@@ -320,4 +320,5 @@ WZ_BINDS = [
     bind("pub", "*", ".wz", handle_wz),
     bind("pub", "*", ".wzset", handle_wzset),
     bind("pub", "*", ".wzhelp", handle_wzhelp),
+    bind("msg", "*", ".wzhelp", handle_wzhelp),
 ]
