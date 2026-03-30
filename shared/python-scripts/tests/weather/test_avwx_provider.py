@@ -91,8 +91,7 @@ def test_avwx_station_not_found():
     responses_lib.add(
         responses_lib.GET,
         "https://aviationweather.gov/api/data/metar",
-        json=[],
-        status=200,
+        status=204,
     )
     p = AvWxProvider()
     loc = LocationResult(type=LocationType.ICAO, query="ZZZZ", raw="ZZZZ")
