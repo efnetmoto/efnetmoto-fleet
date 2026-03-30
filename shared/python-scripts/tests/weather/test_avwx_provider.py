@@ -127,3 +127,14 @@ def test_router_icao_without_metar_raises(monkeypatch):
     loc = LocationResult(type=LocationType.ICAO, query="KSFO", raw="KSFO")
     with pytest.raises(ProviderError, match="--metar"):
         router.route(loc, metar=False)
+
+
+def test_router_metar_without_icao_raises(monkeypatch):
+    """--metar without ICAO codes are rejected with an actioanble error."""
+    monkeypatch.setenv("WEATHERAPI_KEY", "test-key-12345")
+    wapi = WeatherAPIProvider()
+    avwx = AvWxProvider()
+    router = ProviderRouter([wapi, avwx])
+    loc = LocationResult(type=LocationType.CITY_STATE, query="0S9", raw="0S9")
+    with pytest.raises(ProviderError, match="requires 3-digit ICAO codes"):
+        router.route(loc, metar=True)
