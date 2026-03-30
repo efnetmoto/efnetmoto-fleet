@@ -103,7 +103,7 @@ def format_metar(
         raise ValueError("metar_raw is required for format_metar")
 
     if result.visibility_mi is None:
-        vis = "> 6 mi"
+        vis = "> 10 SM"
     else:
         vis = f"{result.visibility_mi:.1f}SM"
 

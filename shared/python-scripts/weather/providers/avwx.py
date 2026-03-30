@@ -49,9 +49,12 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
         wind_gust_mph = None
         wind_gust_kph = None
 
-    # Visibility — 9999 means unrestricted; store None so formatter can show "> 6 mi"
+    # Visibility — in statute miles, a string value (e.g. 10+) means "greater than 10 sm"
     visib_raw = obs.get("visib")
-    if visib_raw is not None and float(visib_raw) != 9999:
+    if visib_raw is not None and str(visib_raw).endswith("+"):
+        visibility_mi = None
+        visibility_km = None
+    elif visib_raw is not None and float(visib_raw):
         visibility_mi: float | None = float(visib_raw)
         visibility_km: float | None = round(float(visib_raw) * 1.60934, 1)
     else:
