@@ -10,7 +10,7 @@ set timezone "{{ ansible_date_time.tz }}"
 set offset "{{ timezone_offset }}"
 set nat-ip "{{ nat_ip }}"
 
-set pidfile "pid.{{ bot_nick }}"
+set pidfile "data/pid.{{ bot_nick }}"
 
 set prefer-ipv6 {{ prefer_ipv6 | default(1) }}
 

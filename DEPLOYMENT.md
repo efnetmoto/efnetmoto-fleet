@@ -396,7 +396,7 @@ Ensure directories have correct ownership:
 ls -la bots/<botname>/data/
 ```
 
-All files should be owned by UID 100 (container user).
+All files should be owned by the user running the Ansible playbooks.
 
 ## Security Considerations
 

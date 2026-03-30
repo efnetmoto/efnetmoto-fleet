@@ -8,12 +8,24 @@
       become: true
   when: manage_docker | bool
 
+# TODO: Remove this once this change has been run once. The purpose of this
+# play is to migrate all file ownership back to the user that runs the playbooks.
+# It is not needed after this migration.
+- name: Ensure file ownership for entire repo
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}"
+    state: "directory"
+    owner: "{{ ansible_user_uid }}"
+    group: "{{ ansible_user_gid }}"
+    recurse: true
+  become: true
+
 - name: Create runtime directories if they don't exist
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: "0775"
-    owner: "100"  # aligns with container user
+    owner: "{{ ansible_user_uid }}"
     group: "{{ ansible_user_gid }}"
   become: true
   loop: "{{ runtime_dirs | default([]) }}"
@@ -48,6 +60,8 @@
       {% for key, val in environment_variables.items() %}
       {{ key | upper }}={{ val }}
       {% endfor %}
+      UID={{ ansible_user_uid }}
+      GID={{ ansible_user_gid }}
     dest: "bots/{{ bot_nick }}/.env"
     mode: '0600'
   when: environment_variables is defined

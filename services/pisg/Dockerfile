@@ -1,7 +1,19 @@
-FROM alpine:3.19
+# ------ builder ------
+FROM alpine:3.23 AS builder
 
-ENV PISG_VERSION=0.73 \
-    STATSGEN_ON_STARTUP=false \
+ARG PISG_VERSION=0.73 
+
+RUN apk add --no-cache \
+    curl \
+    && curl -LO https://github.com/PISG/pisg/releases/download/${PISG_VERSION}/pisg-${PISG_VERSION}.tar.gz \
+    && mkdir /pisg \
+    && tar -xz -C /pisg --strip-components=1 -f pisg-${PISG_VERSION}.tar.gz \
+    && chmod +x /pisg/pisg 
+
+# ------ runtime -------
+FROM alpine:3.23
+
+ENV STATSGEN_ON_STARTUP=false \
     CRON_SCHEDULE=@hourly
 
 RUN apk add --no-cache \
@@ -9,24 +21,13 @@ RUN apk add --no-cache \
     supercronic \
     tini
 
-RUN apk add --no-cache --virtual build-deps curl && \
-    curl -LO https://github.com/PISG/pisg/releases/download/${PISG_VERSION}/pisg-${PISG_VERSION}.tar.gz && \
-    mkdir /pisg && \
-    tar -xz -C /pisg --strip-components=1 -f pisg-${PISG_VERSION}.tar.gz && \
-    chmod +x /pisg/pisg && \
-    rm pisg-${PISG_VERSION}.tar.gz && \
-    apk del build-deps && \
-    adduser -S -u 100 pisg && \
-    mkdir -p /cache /config /logs /output && \
-    chown -R pisg:nobody /cache /config /logs /output /pisg
+COPY --from=builder /pisg /pisg
 
-VOLUME /cache /config /logs /output
+RUN mkdir /cache /config /logs /output 
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /pisg
-
-USER pisg:nobody
 
 ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]

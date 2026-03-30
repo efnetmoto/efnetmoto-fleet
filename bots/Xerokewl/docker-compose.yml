@@ -1,8 +1,8 @@
 services:
   xerokewl:
     build:
-      context: ../../services/eggdrop
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/eggdrop/Dockerfile
     container_name: xerokewl
     restart: unless-stopped
 
@@ -18,16 +18,18 @@ services:
     volumes:
       # Persistent data directory (REQUIRED)
       # Contains: config, userfile, chanfile
-      - ./data:/home/eggdrop/eggdrop/data
+      - ./data:/eggdrop/data
 
       # Bot logs (operational logs - mco flags)
-      - ./logs:/home/eggdrop/eggdrop/logs
+      - ./logs:/eggdrop/logs
 
       # Shared TCL scripts (from repo root)
-      - ../../shared/tcl-scripts:/home/eggdrop/eggdrop/scripts-shared
+      - ../../shared/tcl-scripts:/eggdrop/scripts-shared
 
     environment:
       - TZ=${TZ}
+      - EGGDROP_UID=${UID}
+      - EGGDROP_GID=${GID}
 
     networks:
       - xerokewl-net

@@ -1,8 +1,8 @@
 services:
   pompone:
     build:
-      context: ../../services/eggdrop
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: services/eggdrop/Dockerfile
     container_name: pompone
     restart: unless-stopped
 
@@ -18,19 +18,21 @@ services:
     volumes:
       # Persistent data directory (REQUIRED)
       # Contains: config, userfile, chanfile
-      - ./data:/home/eggdrop/eggdrop/data
+      - ./data:/eggdrop/data
 
       # Bot logs (operational logs - mco flags)
-      - ./logs/bot:/home/eggdrop/eggdrop/logs/bot
+      - ./logs/bot:/eggdrop/logs/bot
 
       # Channel logs (for pisg consumption)
-      - ./logs/channels:/home/eggdrop/eggdrop/logs/channels
+      - ./logs/channels:/eggdrop/logs/channels
 
       # Shared TCL scripts (from repo root)
-      - ../../shared/tcl-scripts:/home/eggdrop/eggdrop/scripts-shared
+      - ../../shared/tcl-scripts:/eggdrop/scripts-shared
 
     environment:
       - TZ=${TZ}
+      - EGGDROP_UID=${UID}
+      - EGGDROP_GID=${GID}
 
     networks:
       - pompone-net
@@ -55,6 +57,8 @@ services:
       # PISG configuration files
       - ./pisg-config:/config:ro
 
+    user: "${UID}:${GID}"
+
     environment:
       - CRON_SCHEDULE=${CRON_SCHEDULE}
 
@@ -65,9 +69,7 @@ services:
       - pompone
 
   nginx:
-    build:
-      context: ../../services/nginx
-      dockerfile: Dockerfile
+    image: nginx:alpine3.23-slim
     container_name: pompone-nginx
     restart: unless-stopped
 
