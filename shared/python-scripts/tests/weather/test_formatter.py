@@ -98,6 +98,20 @@ def test_format_metar_metric(ksfo_metar_result):
     assert "10.0SM" in out
 
 
+def test_format_metar_visibility_nonetype_imperial(ksfo_metar_result):
+    ksfo_metar_result.visibility_mi = None
+    ksfo_metar_result.visibility_km = None
+    out = format_metar(ksfo_metar_result, units=Units.IMPERIAL)
+    assert "> 10 SM" in out
+
+
+def test_format_metar_visibility_nonetype_metric(ksfo_metar_result):
+    ksfo_metar_result.visibility_mi = None
+    ksfo_metar_result.visibility_km = None
+    out = format_metar(ksfo_metar_result, units=Units.METRIC)
+    assert "> 10 SM" in out
+
+
 def test_format_metar_requires_metar_raw():
     result = WeatherResult(
         location_name="KSFO",
