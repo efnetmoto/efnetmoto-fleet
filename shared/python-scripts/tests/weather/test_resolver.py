@@ -32,8 +32,13 @@ def test_iata_unknown_3char():
     assert r.type == LocationType.CITY_STATE
 
 
-def test_icao_known_prefix():
+def test_icao_known_alpha_prefix():
     r = classify("KSFO")
+    assert r.type == LocationType.ICAO
+
+
+def test_icao_known_alnum_prefix():
+    r = classify("K0S9")
     assert r.type == LocationType.ICAO
 
 

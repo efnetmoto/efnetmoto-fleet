@@ -47,7 +47,7 @@ def classify(raw: str) -> LocationResult:
     if _ZIP_RE.match(normalized):
         return LocationResult(type=LocationType.ZIP, query=normalized, raw=stripped)
 
-    if len(normalized) == 4 and normalized.isalpha() and normalized[0] in _ICAO_PREFIXES:
+    if len(normalized) == 4 and normalized.isalnum() and normalized[0] in _ICAO_PREFIXES:
         return LocationResult(type=LocationType.ICAO, query=normalized, raw=stripped)
 
     if len(normalized) == 3 and normalized.isalpha() and normalized in _IATA_CODES:
