@@ -111,6 +111,10 @@ class AvWxProvider(WeatherProvider):
         except requests.ConnectionError:
             raise ProviderError("Could not reach aviationweather.gov")
 
+        # AvWx API returns a 204 when the station is not valid
+        if resp.status_code == 204:
+            raise ProviderError(f"No METAR data found for {loc.query}")
+
         if resp.status_code != 200:
             raise ProviderError(f"aviationweather.gov returned HTTP {resp.status_code}")
 
@@ -118,9 +122,6 @@ class AvWxProvider(WeatherProvider):
             data = resp.json()
         except ValueError:
             raise ProviderError("Unexpected response from aviationweather.gov")
-
-        if not data:
-            raise ProviderError(f"No METAR data found for {loc.query}")
 
         try:
             return _parse_obs(data[0], loc)
