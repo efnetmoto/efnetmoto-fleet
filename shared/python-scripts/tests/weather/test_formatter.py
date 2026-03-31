@@ -85,7 +85,7 @@ def ksfo_metar_result():
         wind_gust_kph=None,
         visibility_mi=10.0,
         visibility_km=16.1,
-        metar_raw="KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992",
+        metar_raw="METAR KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992",
     )
 
 

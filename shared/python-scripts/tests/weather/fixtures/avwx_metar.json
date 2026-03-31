@@ -17,7 +17,7 @@
     "wxString": null,
     "skyCondition": [{"skyCover": "FEW", "cloudBase": 2000}],
     "flight_category": "VFR",
-    "rawOb": "KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130",
+    "rawOb": "METAR KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130",
     "mostRecent": 1,
     "lat": 37.619,
     "lon": -122.375,
