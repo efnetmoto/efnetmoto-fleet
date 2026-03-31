@@ -116,8 +116,6 @@ def format_metar(
 
     return " :: ".join(
         [
-            result.location_name,
-            "METAR",
             result.metar_raw,
             " | ".join(pipe_fields),
         ]

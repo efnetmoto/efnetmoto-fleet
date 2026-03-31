@@ -42,7 +42,7 @@ def test_avwx_happy_path():
     result = p.get_weather(loc)
     assert result.location_name == "KSFO"
     assert result.temp_c == 16.0
-    assert result.metar_raw == "KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130"
+    assert result.metar_raw == "METAR KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130"
     assert result.feels_like_c is None
     assert result.feels_like_f is None
     assert result.humidity_pct is not None  # calculated from dewpoint
@@ -62,7 +62,7 @@ def test_avwx_visibility_int():
     loc = LocationResult(type=LocationType.ICAO, query="KSFO", raw="KSFO")
     result = p.get_weather(loc)
     assert result.location_name == "KSFO"
-    assert result.metar_raw == "KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130"
+    assert result.metar_raw == "METAR KSFO 141956Z 28013KT 10SM FEW020 16/09 A2992 RMK AO2 SLP130"
     assert result.visibility_mi == 50
     assert result.visibility_km == 80.5
 
