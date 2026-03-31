@@ -1,21 +1,20 @@
 import json
-import os
 
 import pytest
+import requests
 import responses as responses_lib
 
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType
 from weather.providers.ambient import AmbientProvider
 
-_FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "ambient_device.json")
 _ENDPOINT = "https://lightning.ambientweather.net/devices"
 _SLUG = "aaaabbbbccccddddaaaabbbbccccdddd"
 
 
 @pytest.fixture
-def fixture_data():
-    with open(_FIXTURE_PATH) as f:
+def ambient_devices_raw_resp(fixtures_dir):
+    with open(fixtures_dir / "ambient_device.json") as f:
         return json.load(f)
 
 
@@ -29,12 +28,17 @@ def provider():
     return AmbientProvider()
 
 
+def test_ambient_get_forecast_returns_none(provider, slug_loc):
+    """AmbientProvider does not support forecasts - get_forecast returns None"""
+    assert provider.get_forecast(slug_loc) is None
+
+
 @responses_lib.activate
-def test_slug_returns_weather_result(provider, slug_loc, fixture_data):
+def test_slug_returns_weather_result(provider, slug_loc, ambient_devices_raw_resp):
     responses_lib.add(
         responses_lib.GET,
         _ENDPOINT,
-        json=fixture_data,
+        json=ambient_devices_raw_resp,
         status=200,
     )
     result = provider.get_weather(slug_loc)
@@ -47,43 +51,34 @@ def test_slug_returns_weather_result(provider, slug_loc, fixture_data):
     assert result.wind_dir == "NNW"
     assert result.wind_mph == 3.6
     assert result.wind_kph == 5.8
-
-
-@responses_lib.activate
-def test_condition_is_none(provider, slug_loc, fixture_data):
-    responses_lib.add(responses_lib.GET, _ENDPOINT, json=fixture_data, status=200)
-    result = provider.get_weather(slug_loc)
     assert result.condition is None
-
-
-@responses_lib.activate
-def test_visibility_is_none(provider, slug_loc, fixture_data):
-    responses_lib.add(responses_lib.GET, _ENDPOINT, json=fixture_data, status=200)
-    result = provider.get_weather(slug_loc)
     assert result.visibility_mi is None
     assert result.visibility_km is None
-
-
-@responses_lib.activate
-def test_rain_today_populated(provider, slug_loc, fixture_data):
-    responses_lib.add(responses_lib.GET, _ENDPOINT, json=fixture_data, status=200)
-    result = provider.get_weather(slug_loc)
     assert result.rain_today_in == 0.0
     assert result.rain_today_mm == 0.0
 
 
 @responses_lib.activate
-def test_wind_dir_is_cardinal(provider, slug_loc, fixture_data):
-    responses_lib.add(responses_lib.GET, _ENDPOINT, json=fixture_data, status=200)
-    result = provider.get_weather(slug_loc)
-    assert result.wind_dir == "NNW"
+def test_connection_error(provider, ksfo_loc):
+    responses_lib.add(
+        responses_lib.GET,
+        _ENDPOINT,
+        body=requests.ConnectionError(),
+    )
+    with pytest.raises(ProviderError, match="Could not reach"):
+        provider.get_weather(ksfo_loc)
 
 
 @responses_lib.activate
-def test_location_name(provider, slug_loc, fixture_data):
-    responses_lib.add(responses_lib.GET, _ENDPOINT, json=fixture_data, status=200)
-    result = provider.get_weather(slug_loc)
-    assert result.location_name == "Test Station, Testville"
+def test_non_200_raises_provider_error(provider, slug_loc):
+    responses_lib.add(
+        responses_lib.GET,
+        _ENDPOINT,
+        json={"message": "kablooey"},
+        status=400,
+    )
+    with pytest.raises(ProviderError, match="kablooey"):
+        provider.get_weather(slug_loc)
 
 
 @responses_lib.activate
@@ -107,12 +102,10 @@ def test_http_500_raises_provider_error(provider, slug_loc):
 
 @responses_lib.activate
 def test_timeout_raises_provider_error(provider, slug_loc):
-    import requests as req_lib
-
     responses_lib.add(
         responses_lib.GET,
         _ENDPOINT,
-        body=req_lib.Timeout(),
+        body=requests.Timeout(),
     )
     with pytest.raises(ProviderError, match="timed out"):
         provider.get_weather(slug_loc)
