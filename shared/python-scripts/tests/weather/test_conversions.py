@@ -1,47 +1,59 @@
+import pytest
+
 from weather.conversions import (
     c_to_f,
     degrees_to_cardinal,
     f_to_c,
+    humidity_from_dewpoint,
     inches_to_mm,
     kph_to_mph,
     mph_to_kph,
+    mps_to_kph,
+    mps_to_mph,
 )
 
 
-def test_degrees_to_cardinal_north():
-    assert degrees_to_cardinal(0) == "N"
+@pytest.mark.parametrize(
+    "degrees, expected",
+    [
+        (0, "N"),
+        (90, "E"),
+        (180, "S"),
+        (270, "W"),
+        (329, "NNW"),
+        (360, "N"),
+    ],
+)
+def test_degrees_to_cardinal(degrees, expected):
+    assert degrees_to_cardinal(degrees) == expected
 
 
-def test_degrees_to_cardinal_east():
-    assert degrees_to_cardinal(90) == "E"
+def test_degrees_to_cardinal_string_input():
+    assert degrees_to_cardinal("N") == "N"
 
 
-def test_degrees_to_cardinal_south():
-    assert degrees_to_cardinal(180) == "S"
+@pytest.mark.parametrize(
+    "fahrenheit, expected",
+    [
+        (-12.3, -24.6),
+        (32.0, 0.0),
+        (82.0, 27.8),
+    ],
+)
+def test_f_to_c(fahrenheit, expected):
+    assert f_to_c(fahrenheit) == expected
 
 
-def test_degrees_to_cardinal_west():
-    assert degrees_to_cardinal(270) == "W"
-
-
-def test_degrees_to_cardinal_nnw():
-    assert degrees_to_cardinal(329) == "NNW"
-
-
-def test_degrees_to_cardinal_wraps():
-    assert degrees_to_cardinal(360) == "N"
-
-
-def test_f_to_c_freezing():
-    assert f_to_c(32.0) == 0.0
-
-
-def test_f_to_c_warm():
-    assert f_to_c(82.0) == 27.8
-
-
-def test_c_to_f_freezing():
-    assert c_to_f(0.0) == 32.0
+@pytest.mark.parametrize(
+    "celcius, expected",
+    [
+        (-12.3, 9.9),
+        (0, 32.0),
+        (27.8, 82.0),
+    ],
+)
+def test_c_to_f(celcius, expected):
+    assert c_to_f(celcius) == expected
 
 
 def test_mph_to_kph():
@@ -54,3 +66,15 @@ def test_kph_to_mph():
 
 def test_inches_to_mm():
     assert inches_to_mm(0.031) == 0.8
+
+
+def test_mps_to_mph():
+    assert mps_to_mph(1.23) == 2.8
+
+
+def test_mps_to_kph():
+    assert mps_to_kph(1.23) == 4.4
+
+
+def test_humidity_from_dewpoint():
+    assert humidity_from_dewpoint(22, 11.94) == 53

@@ -54,14 +54,10 @@ def test_4char_invalid_icao_prefix():
     assert r.type == LocationType.CITY_STATE
 
 
-def test_empty_string():
+@pytest.mark.parametrize("query", ["", "   "])
+def test_empty_string(query):
     with pytest.raises(ResolverError):
-        classify("")
-
-
-def test_whitespace_only():
-    with pytest.raises(ResolverError):
-        classify("   ")
+        classify(query)
 
 
 def test_lowercase_normalized():
@@ -85,21 +81,16 @@ def test_ambient_slug():
     assert r.type == LocationType.AMBIENT_SLUG
 
 
-def test_ambient_url_https():
-    r = classify("https://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116")
-    assert r.type == LocationType.AMBIENT_URL
-    assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
-
-
-def test_ambient_url_http():
-    r = classify("http://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116")
-    assert r.type == LocationType.AMBIENT_URL
-    assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
-
-
-def test_ambient_url_query_is_bare_slug():
-    url = "https://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116"
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116",
+        "http://ambientweather.net/dashboard/3602d35f96fb9f73b9f34c87a0279116",
+    ],
+)
+def test_ambient_url(url):
     r = classify(url)
+    assert r.type == LocationType.AMBIENT_URL
     assert r.query == "3602d35f96fb9f73b9f34c87a0279116"
     assert r.raw == url
 

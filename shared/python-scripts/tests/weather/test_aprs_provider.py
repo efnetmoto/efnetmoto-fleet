@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import pytest
 import requests
@@ -9,18 +8,20 @@ from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType
 from weather.providers.aprs import AprsProvider
 
-FIXTURES = Path(__file__).parent / "fixtures"
-
 
 @pytest.fixture
-def provider(monkeypatch):
-    monkeypatch.setenv("APRSFI_KEY", "test-key-12345")
+def provider():
     return AprsProvider()
 
 
 @pytest.fixture
 def aprs_loc():
     return LocationResult(type=LocationType.APRS, query="KSFO", raw="KSFO")
+
+
+@pytest.fixture
+def cwop_aprx_wx_raw_response(fixtures_dir):
+    return json.loads((fixtures_dir / "cwop_aprs_wx.json").read_text())
 
 
 def test_aprs_get_forecast_returns_none(provider, aprs_loc):
@@ -55,12 +56,11 @@ def test_aprs_supports_aprs_only(provider):
 
 
 @responses_lib.activate
-def test_aprs_happy_path(provider, aprs_loc):
-    data = json.loads((FIXTURES / "cwop_aprs_wx.json").read_text())
+def test_aprs_happy_path(cwop_aprx_wx_raw_response, provider, aprs_loc):
     responses_lib.add(
         responses_lib.GET,
         provider.aprs_baseurl,
-        json=data,
+        json=cwop_aprx_wx_raw_response,
         status=200,
     )
     result = provider.get_weather(aprs_loc)
@@ -137,3 +137,30 @@ def test_aprs_unparseable_response(provider, aprs_loc):
     )
     with pytest.raises(ProviderError, match="Could not parse"):
         provider.get_weather(aprs_loc)
+
+
+@responses_lib.activate
+def test_aprs_wind_dir_none(cwop_aprx_wx_raw_response, provider, aprs_loc):
+    cwop_aprx_wx_raw_response["entries"][0]["wind_direction"] = None
+    responses_lib.add(
+        responses_lib.GET,
+        provider.aprs_baseurl,
+        json=cwop_aprx_wx_raw_response,
+        status=200,
+    )
+    result = provider.get_weather(aprs_loc)
+    assert result.wind_dir == "N/A"
+
+
+@responses_lib.activate
+def test_aprs_wind_gust_none(cwop_aprx_wx_raw_response, provider, aprs_loc):
+    cwop_aprx_wx_raw_response["entries"][0]["wind_gust"] = None
+    responses_lib.add(
+        responses_lib.GET,
+        provider.aprs_baseurl,
+        json=cwop_aprx_wx_raw_response,
+        status=200,
+    )
+    result = provider.get_weather(aprs_loc)
+    assert result.wind_gust_kph is None
+    assert result.wind_gust_mph is None

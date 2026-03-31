@@ -1,6 +1,6 @@
 import pytest
 
-from weather.formatter import format_current, format_metar
+from weather.formatter import format_current, format_metar, format_pws
 from weather.models import ForecastResult, Units, WeatherResult
 
 
@@ -98,42 +98,113 @@ def test_format_metar_metric(ksfo_metar_result):
     assert "10.0SM" in out
 
 
-def test_format_metar_visibility_nonetype_imperial(ksfo_metar_result):
+@pytest.mark.parametrize("units", [Units.METRIC, Units.IMPERIAL])
+def test_format_metar_visibility_nonetype(ksfo_metar_result, units):
     ksfo_metar_result.visibility_mi = None
     ksfo_metar_result.visibility_km = None
-    out = format_metar(ksfo_metar_result, units=Units.IMPERIAL)
+    out = format_metar(ksfo_metar_result, units=units)
     assert "> 10 SM" in out
 
 
-def test_format_metar_visibility_nonetype_metric(ksfo_metar_result):
-    ksfo_metar_result.visibility_mi = None
-    ksfo_metar_result.visibility_km = None
-    out = format_metar(ksfo_metar_result, units=Units.METRIC)
-    assert "> 10 SM" in out
-
-
-def test_format_metar_requires_metar_raw():
-    result = WeatherResult(
-        location_name="KSFO",
-        condition="",
-        temp_c=16.0,
-        temp_f=60.8,
-        feels_like_c=None,
-        feels_like_f=None,
-        humidity_pct=None,
-        wind_dir="W",
-        wind_mph=9.4,
-        wind_kph=15.1,
-        wind_gust_mph=None,
-        wind_gust_kph=None,
-        visibility_mi=10.0,
-        visibility_km=16.1,
-        metar_raw=None,
-    )
+def test_format_metar_requires_metar_raw(ksfo_metar_result):
+    ksfo_metar_result.metar_raw = None
     with pytest.raises(ValueError):
-        format_metar(result)
+        format_metar(ksfo_metar_result)
 
 
 def test_line_length_under_400(sjc_result, sjc_forecast):
     out = format_current(sjc_result, forecast=sjc_forecast, units=Units.METRIC)
+    assert len(out) < 400
+
+
+@pytest.fixture
+def pws_result():
+    return WeatherResult(
+        location_name="My Home Station",
+        condition=None,
+        temp_c=22.5,
+        temp_f=72.5,
+        feels_like_c=21.0,
+        feels_like_f=69.8,
+        humidity_pct=55,
+        wind_dir="SW",
+        wind_mph=8.1,
+        wind_kph=13.0,
+        wind_gust_mph=12.5,
+        wind_gust_kph=20.1,
+        uv_index=5.0,
+        rain_today_in=0.1,
+        rain_today_mm=2.5,
+    )
+
+
+def test_format_pws_metric(pws_result):
+    out = format_pws(pws_result, units=Units.METRIC)
+    expected = (
+        "PWS: My Home Station :: "
+        "22.5C/72.5F (Feels like 21.0C/69.8F) (Humidity: 55%) | "
+        "Wind: SW at 13.0kph/8.1mph (Gust: 20.1kph/12.5mph) | "
+        "UV: 5 | "
+        "Rain today: 2.5mm/0.1in"
+    )
+    assert out == expected
+
+
+def test_format_pws_imperial(pws_result):
+    out = format_pws(pws_result, units=Units.IMPERIAL)
+    assert "72.5F/22.5C" in out
+    assert "8.1mph/13.0kph" in out
+
+
+def test_format_pws_no_feels_like(pws_result):
+    pws_result.feels_like_c = None
+    pws_result.feels_like_f = None
+    out = format_pws(pws_result, units=Units.METRIC)
+    assert "Feels like" not in out
+
+
+def test_format_pws_no_humidity(pws_result):
+    pws_result.humidity_pct = None
+    out = format_pws(pws_result, units=Units.METRIC)
+    assert "Humidity" not in out
+
+
+def test_format_pws_no_gust(pws_result):
+    pws_result.wind_gust_mph = None
+    pws_result.wind_gust_kph = None
+    out = format_pws(pws_result, units=Units.METRIC)
+    assert "Gust" not in out
+
+
+@pytest.mark.parametrize(
+    "units, expected",
+    [
+        (Units.METRIC, "Rain today: 2.5mm/0.1in"),
+        (Units.IMPERIAL, "Rain today: 0.1in/2.5mm"),
+    ],
+)
+def test_format_pws_rain_order(pws_result, units, expected):
+    out = format_pws(pws_result, units=units)
+    assert expected in out
+
+
+def test_format_pws_no_optional_fields():
+    result = WeatherResult(
+        location_name="My Home Station",
+        condition=None,
+        temp_c=22.5,
+        temp_f=72.5,
+        feels_like_c=None,
+        feels_like_f=None,
+        humidity_pct=None,
+        wind_dir="SW",
+        wind_mph=8.1,
+        wind_kph=13.0,
+    )
+    out = format_pws(result, units=Units.METRIC)
+    assert out == "PWS: My Home Station :: 22.5C/72.5F | Wind: SW at 13.0kph/8.1mph"
+
+
+def test_format_pws_line_length_under_400(pws_result):
+    out = format_pws(pws_result, units=Units.METRIC)
     assert len(out) < 400

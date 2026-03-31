@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 import pytest
 import requests
@@ -7,31 +6,30 @@ import responses as responses_lib
 
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType
-from weather.providers.avwx import AvWxProvider
 from weather.providers.weatherapi import WeatherAPIProvider
-from weather.router import ProviderRouter
-
-FIXTURES = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
-def provider(monkeypatch):
-    monkeypatch.setenv("WEATHERAPI_KEY", "test-key-12345")
+def provider():
     return WeatherAPIProvider()
 
 
 @pytest.fixture
-def ksfo_loc():
-    return LocationResult(type=LocationType.ICAO, query="KSFO", raw="KSFO")
+def weatherapi_raw_resp(fixtures_dir):
+    return json.loads((fixtures_dir / "weatherapi_current.json").read_text())
+
+
+@pytest.fixture
+def weatherapi_forecast_raw_resp(fixtures_dir):
+    return json.loads((fixtures_dir / "weatherapi_forecast.json").read_text())
 
 
 @responses_lib.activate
-def test_happy_path(provider, ksfo_loc):
-    data = json.loads((FIXTURES / "weatherapi_current.json").read_text())
+def test_happy_path(provider, ksfo_loc, weatherapi_raw_resp):
     responses_lib.add(
         responses_lib.GET,
         "https://api.weatherapi.com/v1/current.json",
-        json=data,
+        json=weatherapi_raw_resp,
         status=200,
     )
     result = provider.get_weather(ksfo_loc)
@@ -84,19 +82,18 @@ def test_missing_api_key(monkeypatch):
         WeatherAPIProvider()
 
 
-def test_supports_all_location_types(provider):
-    for loc_type in LocationType:
-        loc = LocationResult(type=loc_type, query="test", raw="test")
-        assert provider.supports(loc) is True
+@pytest.mark.parametrize("loc_type", list(LocationType))
+def test_supports_all_location_types(provider, loc_type):
+    loc = LocationResult(type=loc_type, query="test", raw="test")
+    assert provider.supports(loc) is True
 
 
 @responses_lib.activate
-def test_get_forecast_happy_path(provider, ksfo_loc):
-    data = json.loads((FIXTURES / "weatherapi_forecast.json").read_text())
+def test_get_forecast_happy_path(provider, weatherapi_forecast_raw_resp, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
         "https://api.weatherapi.com/v1/forecast.json",
-        json=data,
+        json=weatherapi_forecast_raw_resp,
         status=200,
     )
     forecast = provider.get_forecast(ksfo_loc)
@@ -118,13 +115,3 @@ def test_get_forecast_error_returns_provider_error(provider, ksfo_loc):
     )
     with pytest.raises(ProviderError):
         provider.get_forecast(ksfo_loc)
-
-
-def test_router_no_metar_prefers_weatherapi(monkeypatch):
-    monkeypatch.setenv("WEATHERAPI_KEY", "test-key-12345")
-    wapi = WeatherAPIProvider()
-    avwx = AvWxProvider()
-    router = ProviderRouter([wapi, avwx])
-    loc = LocationResult(type=LocationType.ZIP, query="94025", raw="94025")
-    selected = router.route(loc, metar=False)
-    assert isinstance(selected, WeatherAPIProvider)
