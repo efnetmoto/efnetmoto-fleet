@@ -145,7 +145,7 @@ def test_format_pws_metric(pws_result):
         "22.5C/72.5F (Feels like 21.0C/69.8F) (Humidity: 55%) | "
         "Wind: SW at 13.0kph/8.1mph (Gust: 20.1kph/12.5mph) | "
         "UV: 5 | "
-        "Rain today: 2.5mm/0.1in"
+        "Rain today: 2.5mm/0.10in"
     )
     assert out == expected
 
@@ -179,8 +179,8 @@ def test_format_pws_no_gust(pws_result):
 @pytest.mark.parametrize(
     "units, expected",
     [
-        (Units.METRIC, "Rain today: 2.5mm/0.1in"),
-        (Units.IMPERIAL, "Rain today: 0.1in/2.5mm"),
+        (Units.METRIC, "Rain today: 2.5mm/0.10in"),
+        (Units.IMPERIAL, "Rain today: 0.10in/2.5mm"),
     ],
 )
 def test_format_pws_rain_order(pws_result, units, expected):

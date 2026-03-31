@@ -33,11 +33,11 @@ def format_pws(result: WeatherResult, units: Units = Units.METRIC) -> str:
     if result.rain_today_in is not None and result.rain_today_mm is not None:
         if units == Units.METRIC:
             pipe_fields.append(
-                f"Rain today: {result.rain_today_mm:.1f}mm/{result.rain_today_in:.1f}in"
+                f"Rain today: {result.rain_today_mm:.1f}mm/{result.rain_today_in:.2f}in"
             )
         else:
             pipe_fields.append(
-                f"Rain today: {result.rain_today_in:.1f}in/{result.rain_today_mm:.1f}mm"
+                f"Rain today: {result.rain_today_in:.2f}in/{result.rain_today_mm:.1f}mm"
             )
 
     return f"PWS: {result.location_name} :: " + " | ".join(pipe_fields)
