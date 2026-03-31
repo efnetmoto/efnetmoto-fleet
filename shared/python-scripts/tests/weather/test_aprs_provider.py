@@ -75,6 +75,8 @@ def test_aprs_happy_path(cwop_aprx_wx_raw_response, provider, aprs_loc):
     assert result.wind_kph == 1.4
     assert result.wind_gust_mph == 0.9
     assert result.wind_gust_kph == 1.4
+    assert result.rain_today_in == 0.10
+    assert result.rain_today_mm == 2.5
 
 
 @responses_lib.activate

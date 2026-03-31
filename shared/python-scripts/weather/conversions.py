@@ -71,6 +71,11 @@ def inches_to_mm(inches: float) -> float:
     return round(inches * 25.4, 1)
 
 
+def mm_to_inches(mm: float) -> float:
+    """Convert millimetres to inches, rounded to two decimal places."""
+    return round(mm / 25.4, 2)
+
+
 def humidity_from_dewpoint(temp_c: float, dewp_c: float) -> int:
     """Approximate relative humidity using the Magnus formula."""
     a, b = 17.625, 243.04
