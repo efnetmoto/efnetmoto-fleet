@@ -114,3 +114,42 @@ def test_31char_hex_not_ambient_slug():
     # 31 chars — too short
     r = classify("3602d35f96fb9f73b9f34c87a027911")
     assert r.type == LocationType.CITY_STATE
+
+
+def test_aprs_callsign():
+    valid_callsigns = [
+        "K1A-13",  # 1×1
+        "K1AB-13",  # 1×2
+        "K1ABC-13",  # 1×3
+        "KK1A-13",  # 2×1
+        "KK1AB-13",  # 2×2
+        "KK1ABC-13",  # 2×3
+    ]
+    for call in valid_callsigns:
+        r = classify(call)
+        assert r.type == LocationType.APRS
+
+
+def test_aprs_bad_callsigns():
+    invalid_cwop_callsigns = [
+        "K1A",  # missing SSID
+        "K1A-1",  # wrong SSID (not -13)
+        "K1A-013",  # leading zero in SSID
+        "K1A-130",  # SSID too long
+        "K1A--13",  # double dash
+        "K1A-13-1",  # extra suffix
+        "K1-13",  # missing suffix letter
+        "K11-13",  # suffix does not end in letter
+        "K1AB1-13",  # suffix ends in digit
+        "KKK1ABC-13",  # prefix too long (3 letters)
+        "K-1ABC-13",  # malformed prefix
+        "2E-13",  # missing suffix
+        "2E1A1-13",  # suffix ends in digit
+        "A21B-13",  # suffix too short
+        "A2!BC-13",  # invalid character
+        "K1ABC_13",  # wrong separator
+        "K1ABC/13",  # wrong separator
+    ]
+    for call in invalid_cwop_callsigns:
+        r = classify(call)
+        assert r.type != LocationType.APRS

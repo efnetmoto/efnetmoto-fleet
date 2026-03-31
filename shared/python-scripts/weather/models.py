@@ -9,6 +9,7 @@ class LocationType(Enum):
     ICAO = auto()
     AMBIENT_SLUG = auto()  # 32-char lowercase hex slug
     AMBIENT_URL = auto()  # full ambientweather.net dashboard URL
+    APRS = auto()  # APRS/CWOP station identifier
 
 
 class Units(Enum):

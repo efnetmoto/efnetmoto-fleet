@@ -27,6 +27,7 @@ environment_variables:
   tz: "America/Los_Angeles"
   dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end }}"
   weatherapi_key: "{{ vault_weatherapi_key }}"
+  aprsfi_key: "{{ vault_aprsfi_key }}"
 
 # Runtime directories to create
 runtime_dirs:

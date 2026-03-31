@@ -1,20 +1,9 @@
-import math
-
 import requests
 
-from weather.conversions import degrees_to_cardinal
+from weather.conversions import degrees_to_cardinal, humidity_from_dewpoint
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
-
-
-def _humidity_from_dewpoint(temp_c: float, dewp_c: float) -> int:
-    """Approximate relative humidity using the Magnus formula."""
-    a, b = 17.625, 243.04
-    gamma = (a * dewp_c) / (b + dewp_c)
-    gamma_t = (a * temp_c) / (b + temp_c)
-    rh = 100.0 * math.exp(gamma - gamma_t)
-    return max(0, min(100, round(rh)))
 
 
 def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
@@ -23,9 +12,7 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
 
     # Humidity from dewpoint if available
     dewp = obs.get("dewp")
-    humidity: int | None = (
-        _humidity_from_dewpoint(temp_c, float(dewp)) if dewp is not None else None
-    )
+    humidity: int | None = humidity_from_dewpoint(temp_c, float(dewp)) if dewp is not None else None
 
     # Wind
     wdir = obs.get("wdir")

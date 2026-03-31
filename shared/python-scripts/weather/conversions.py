@@ -5,6 +5,8 @@ No state, no side effects. This module is the single source of truth
 for all unit arithmetic in the package.
 """
 
+import math
+
 _WIND_DIRS = [
     "N",
     "NNE",
@@ -54,6 +56,25 @@ def kph_to_mph(kph: float) -> float:
     return round(kph / 1.60934, 1)
 
 
+def mps_to_mph(mps: float) -> float:
+    """Convert meters per second to miles per hour, rounded to one decimal."""
+    return round(mps * 2.23694, 1)
+
+
+def mps_to_kph(mps: float) -> float:
+    """Convert meters per second to kilometres per hour, rounded to one decimal"""
+    return round(mps * 3.6, 1)
+
+
 def inches_to_mm(inches: float) -> float:
     """Convert inches to millimetres, rounded to one decimal place."""
     return round(inches * 25.4, 1)
+
+
+def humidity_from_dewpoint(temp_c: float, dewp_c: float) -> int:
+    """Approximate relative humidity using the Magnus formula."""
+    a, b = 17.625, 243.04
+    gamma = (a * dewp_c) / (b + dewp_c)
+    gamma_t = (a * temp_c) / (b + temp_c)
+    rh = 100.0 * math.exp(gamma - gamma_t)
+    return max(0, min(100, round(rh)))

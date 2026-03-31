@@ -1,6 +1,7 @@
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType
 from weather.providers.ambient import AmbientProvider
+from weather.providers.aprs import AprsProvider
 from weather.providers.base import WeatherProvider
 
 _AMBIENT_TYPES = {LocationType.AMBIENT_SLUG, LocationType.AMBIENT_URL}
@@ -45,6 +46,12 @@ class ProviderRouter:
                 " See https://en.wikipedia.org/wiki/List_of_airports_by_ICAO_code:_A"
                 " for a complete list."
             )
+
+        if loc.type == LocationType.APRS:
+            for p in self._providers:
+                if isinstance(p, AprsProvider):
+                    return p
+            raise ProviderError(f"No provider available for location: {loc.raw}")
 
         if loc.type in _AMBIENT_TYPES:
             for p in self._providers:

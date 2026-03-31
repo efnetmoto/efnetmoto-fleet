@@ -34,6 +34,7 @@ services:
       - EGGDROP_UID=${UID}
       - EGGDROP_GID=${GID}
       - WEATHERAPI_KEY=${WEATHERAPI_KEY}
+      - APRSFI_KEY=${APRSFI_KEY}
 
     networks:
       - xerokewl-net

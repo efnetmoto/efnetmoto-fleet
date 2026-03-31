@@ -15,6 +15,8 @@ _ICAO_PREFIXES = frozenset("KPTELHUFORSVYWZ")
 _ZIP_RE = re.compile(r"^\d{5}(-\d{4})?$")
 _AMBIENT_URL_RE = re.compile(r"^https?://ambientweather\.net/dashboard/([0-9a-f]{32})$")
 _AMBIENT_SLUG_RE = re.compile(r"^[0-9a-f]{32}$")
+# APRS supports HAM call signs with the SSID 13 suffixed
+_APRS_RE = re.compile(r"^(?:[KNW][0-9][A-Z]{1,3}|[KNW][A-Z][0-9][A-Z]{1,3})-13$")
 
 
 def _load_iata_codes() -> frozenset[str]:
@@ -46,6 +48,9 @@ def classify(raw: str) -> LocationResult:
 
     if _ZIP_RE.match(normalized):
         return LocationResult(type=LocationType.ZIP, query=normalized, raw=stripped)
+
+    if _APRS_RE.match(normalized):
+        return LocationResult(type=LocationType.APRS, query=normalized, raw=stripped)
 
     if len(normalized) == 4 and normalized.isalnum() and normalized[0] in _ICAO_PREFIXES:
         return LocationResult(type=LocationType.ICAO, query=normalized, raw=stripped)
