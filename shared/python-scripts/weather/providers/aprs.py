@@ -4,7 +4,7 @@ import os
 
 import requests
 
-from weather.conversions import c_to_f, degrees_to_cardinal, mps_to_kph, mps_to_mph
+from weather.conversions import c_to_f, degrees_to_cardinal, mm_to_inches, mps_to_kph, mps_to_mph
 from weather.exceptions import ProviderError
 from weather.models import LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
@@ -46,6 +46,10 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
         wind_gust_mph = None
         wind_gust_kph = None
 
+    rain_since_midnight = float(obs.get("rain_mn") or 0)
+    rain_in = mm_to_inches(rain_since_midnight)
+    rain_mm = round(rain_since_midnight, 1)
+
     return WeatherResult(
         location_name=obs.get("name", loc.query),
         temp_f=temp_f,
@@ -58,7 +62,8 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
         wind_kph=wind_kph,
         wind_gust_mph=wind_gust_mph,
         wind_gust_kph=wind_gust_kph,
-        rain_today_in=obs["rain_mn"],
+        rain_today_in=rain_in,
+        rain_today_mm=rain_mm,
     )
 
 

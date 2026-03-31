@@ -7,6 +7,7 @@ from weather.conversions import (
     humidity_from_dewpoint,
     inches_to_mm,
     kph_to_mph,
+    mm_to_inches,
     mph_to_kph,
     mps_to_kph,
     mps_to_mph,
@@ -66,6 +67,10 @@ def test_kph_to_mph():
 
 def test_inches_to_mm():
     assert inches_to_mm(0.031) == 0.8
+
+
+def test_mm_to_inches():
+    assert mm_to_inches(3.6) == 0.14
 
 
 def test_mps_to_mph():
