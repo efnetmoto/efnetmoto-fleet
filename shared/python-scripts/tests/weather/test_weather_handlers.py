@@ -30,6 +30,9 @@ _eggdrop_mock.tcl.validuser = _validuser
 # WEATHERAPI_KEY must be set before weather.py is imported (WeatherAPIProvider checks at init)
 os.environ.setdefault("WEATHERAPI_KEY", "test-key")
 
+# APRSFI_KEY must be set before weather.py is imported (AprsProvider checks at init)
+os.environ.setdefault("APRSFI_KEY", "test-key")
+
 # Load weather.py by file path — `import weather` would resolve to the weather/ package
 _script_path = pathlib.Path(__file__).parents[2] / "weather.py"
 _spec = importlib.util.spec_from_file_location("weather_script", _script_path)

@@ -1,0 +1,22 @@
+{
+  "command": "get",
+  "result": "ok",
+  "what": "wx",
+  "found": 1,
+  "entries": [
+    {
+      "name": "KK6LVQ-13",
+      "time": "1774906486",
+      "temp": "24.4",
+      "pressure": "1018.5",
+      "humidity": "43",
+      "wind_direction": "179",
+      "wind_speed": "0.4",
+      "wind_gust": "0.4",
+      "rain_1h": "0",
+      "rain_24h": "0",
+      "rain_mn": "0",
+      "luminosity": "345"
+    }
+  ]
+}

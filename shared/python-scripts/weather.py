@@ -16,6 +16,7 @@ from weather import formatter, prefs, resolver
 from weather.exceptions import ProviderError, ResolverError
 from weather.models import LocationType, Units, UserPref
 from weather.providers.ambient import AmbientProvider
+from weather.providers.aprs import AprsProvider
 from weather.providers.avwx import AvWxProvider
 from weather.providers.weatherapi import WeatherAPIProvider
 from weather.router import ProviderRouter
@@ -27,8 +28,9 @@ logger = logging.getLogger(__name__)
 # on first user query.
 _weatherapi = WeatherAPIProvider()
 _avwx = AvWxProvider()
+_aprs = AprsProvider()
 _ambient = AmbientProvider()
-_router = ProviderRouter([_weatherapi, _avwx, _ambient])
+_router = ProviderRouter([_weatherapi, _avwx, _aprs, _ambient])
 
 
 class ParseFlagsError(ValueError):
@@ -183,7 +185,7 @@ def _do_fetch_weather(
 
     if metar:
         output = formatter.format_metar(result, units)
-    elif isinstance(provider, AmbientProvider):
+    elif isinstance(provider, (AmbientProvider, AprsProvider)):
         output = formatter.format_pws(result, units)
     else:
         output = formatter.format_current(result, forecast=forecast, units=units)
@@ -296,6 +298,7 @@ HELP_LINES = [
     "Personal weather stations (Ambient Weather Network):",
     "  .w/.wz <ambientweather.net/dashboard/URL>  — query by dashboard URL",
     "  .w/.wz <32-char station slug>              — query by station slug",
+    "  .w/.wz <CALLSIGN with SSID 13>             - query by CWOP Callsign"
     "  .wzset <URL or slug>                       — save as your default",
 ]
 
