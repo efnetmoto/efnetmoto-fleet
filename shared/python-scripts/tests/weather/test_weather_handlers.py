@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from weather.exceptions import ProviderError
 from weather.models import Units, UserPref
 
 # conftest.py installs the eggdrop mock before any test file is imported.
@@ -212,7 +213,9 @@ def test_wzset_units_only_update(putserv_mock):
 
 def test_wzset_saves_location(putserv_mock):
     """A valid location is saved and a confirmation is sent."""
+    mock_provider = MagicMock()
     with (
+        patch.object(w._router, "route", return_value=mock_provider),
         patch.object(w.prefs, "get_pref", return_value=None),
         patch.object(w.prefs, "set_pref") as mock_set,
     ):
@@ -221,6 +224,36 @@ def test_wzset_saves_location(putserv_mock):
     msg = putserv_mock.call_args[0][0]
     assert "Default set to" in msg
     assert "94025" in msg
+
+
+def test_wzset_provider_route_error_rejected(putserv_mock):
+    """Route error (e.g. unsupported location type) prevents saving with actionable feedback."""
+    with (
+        patch.object(w._router, "route", side_effect=ProviderError("bad location")),
+        patch.object(w.prefs, "set_pref") as mock_set,
+    ):
+        w.handle_wzset("SomeNick", "host@example.com", "somehandle", "#moto", "94025")
+    mock_set.assert_not_called()
+    msg = putserv_mock.call_args[0][0]
+    assert "bad location" in msg
+    assert "Location not saved" in msg
+    assert ".wzset" in msg
+
+
+def test_wzset_provider_fetch_error_rejected(putserv_mock):
+    """get_weather() failure (e.g. location not found) prevents saving with actionable feedback."""
+    mock_provider = MagicMock()
+    mock_provider.get_weather.side_effect = ProviderError("location not found")
+    with (
+        patch.object(w._router, "route", return_value=mock_provider),
+        patch.object(w.prefs, "set_pref") as mock_set,
+    ):
+        w.handle_wzset("SomeNick", "host@example.com", "somehandle", "#moto", "94025")
+    mock_set.assert_not_called()
+    msg = putserv_mock.call_args[0][0]
+    assert "location not found" in msg
+    assert "Location not saved" in msg
+    assert ".wzset" in msg
 
 
 def test_wz_no_args_registered_no_pref(putserv_mock):

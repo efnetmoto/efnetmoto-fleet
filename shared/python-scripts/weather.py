@@ -269,6 +269,25 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
             )
             return
 
+        # Validate location before saving — probe the provider, discard result
+        try:
+            provider = _router.route(loc, metar=metar)
+        except ProviderError as e:
+            putserv(
+                f"PRIVMSG {channel} :{nick}: {e}"
+                f" Location not saved — check the location and try .wzset again."
+            )
+            return
+
+        try:
+            provider.get_weather(loc)
+        except ProviderError as e:
+            putserv(
+                f"PRIVMSG {channel} :{nick}: {e}"
+                f" Location not saved — check the location and try .wzset again."
+            )
+            return
+
         pref = prefs.get_pref(handle) or UserPref()
         pref.location = location
         pref.metar = metar
