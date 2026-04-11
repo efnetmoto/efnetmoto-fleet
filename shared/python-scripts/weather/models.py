@@ -47,6 +47,8 @@ class WeatherResult:
     metar_raw: str | None = None  # AvWxProvider only
     rain_today_in: float | None = None  # AmbientProvider only
     rain_today_mm: float | None = None  # AmbientProvider only
+    event_rain_in: float | None = None  # AmbientProvider only
+    event_rain_mm: float | None = None  # AmbientProvider only
 
 
 @dataclass
