@@ -2,11 +2,19 @@ from weather.models import ForecastResult, Units, WeatherResult
 
 
 def _dual(
-    metric_val: float, metric_unit: str, imperial_val: float, imperial_unit: str, units: Units
+    metric_val: float,
+    metric_unit: str,
+    imperial_val: float,
+    imperial_unit: str,
+    units: Units,
+    metric_fmt: str = ".1f",
+    imperial_fmt: str = ".1f",
 ) -> str:
     if units == Units.METRIC:
-        return f"{metric_val:.1f}{metric_unit}/{imperial_val:.1f}{imperial_unit}"
-    return f"{imperial_val:.1f}{imperial_unit}/{metric_val:.1f}{metric_unit}"
+        return (
+            f"{metric_val:{metric_fmt}}{metric_unit}/{imperial_val:{imperial_fmt}}{imperial_unit}"
+        )
+    return f"{imperial_val:{imperial_fmt}}{imperial_unit}/{metric_val:{metric_fmt}}{metric_unit}"
 
 
 def format_pws(result: WeatherResult, units: Units = Units.METRIC) -> str:
@@ -31,24 +39,32 @@ def format_pws(result: WeatherResult, units: Units = Units.METRIC) -> str:
         pipe_fields.append(f"UV: {result.uv_index:.0f}")
 
     if result.rain_today_in is not None and result.rain_today_mm is not None:
-        if units == Units.METRIC:
-            pipe_fields.append(
-                f"Rain today: {result.rain_today_mm:.1f}mm/{result.rain_today_in:.2f}in"
-            )
-        else:
-            pipe_fields.append(
-                f"Rain today: {result.rain_today_in:.2f}in/{result.rain_today_mm:.1f}mm"
-            )
+        rain_today = _dual(
+            result.rain_today_mm,
+            "mm",
+            result.rain_today_in,
+            "in",
+            units,
+            ".1f",
+            ".2f",
+        )
+        pipe_fields.append(f"Rain today: {rain_today}")
 
-        if result.rain_today_in > 0:
-            if units == Units.METRIC:
-                pipe_fields.append(
-                    f"Event rain: {result.event_rain_mm:.1f}mm/{result.event_rain_in:.2f}in"
-                )
-            else:
-                pipe_fields.append(
-                    f"Event rain: {result.event_rain_in:.2f}in/{result.event_rain_mm:.1f}mm"
-                )
+        if (
+            result.rain_today_in > 0
+            and result.event_rain_in is not None
+            and result.event_rain_mm is not None
+        ):
+            event_rain = _dual(
+                result.event_rain_mm,
+                "mm",
+                result.event_rain_in,
+                "in",
+                units,
+                ".1f",
+                ".2f",
+            )
+            pipe_fields.append(f"Event rain: {event_rain}")
 
     return f"PWS: {result.location_name} :: " + " | ".join(pipe_fields)
 
