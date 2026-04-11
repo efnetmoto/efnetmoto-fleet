@@ -56,6 +56,8 @@ def test_slug_returns_weather_result(provider, slug_loc, ambient_devices_raw_res
     assert result.visibility_km is None
     assert result.rain_today_in == 0.0
     assert result.rain_today_mm == 0.0
+    assert result.event_rain_in == 0.0
+    assert result.event_rain_mm == 0.0
 
 
 @responses_lib.activate

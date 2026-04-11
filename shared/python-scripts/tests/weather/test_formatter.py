@@ -135,6 +135,8 @@ def pws_result():
         uv_index=5.0,
         rain_today_in=0.1,
         rain_today_mm=2.5,
+        event_rain_in=0.9,
+        event_rain_mm=22.9,
     )
 
 
@@ -145,7 +147,8 @@ def test_format_pws_metric(pws_result):
         "22.5C/72.5F (Feels like 21.0C/69.8F) (Humidity: 55%) | "
         "Wind: SW at 13.0kph/8.1mph (Gust: 20.1kph/12.5mph) | "
         "UV: 5 | "
-        "Rain today: 2.5mm/0.10in"
+        "Rain today: 2.5mm/0.10in | "
+        "Event rain: 22.9mm/0.90in"
     )
     assert out == expected
 
@@ -186,6 +189,31 @@ def test_format_pws_no_gust(pws_result):
 def test_format_pws_rain_order(pws_result, units, expected):
     out = format_pws(pws_result, units=units)
     assert expected in out
+
+
+@pytest.mark.parametrize(
+    "rain_today_in,rain_today_mm,event_rain_in,event_rain_mm,expect_event_rain",
+    [
+        (1.0, 25.4, 2.0, 50.8, True),
+        (0.0, 0.0, 0.0, 0.0, False),
+    ],
+)
+def test_format_pws_event_rain(
+    pws_result,
+    rain_today_in,
+    rain_today_mm,
+    event_rain_in,
+    event_rain_mm,
+    expect_event_rain,
+):
+    pws_result.rain_today_in = rain_today_in
+    pws_result.rain_today_mm = rain_today_mm
+    pws_result.event_rain_in = event_rain_in
+    pws_result.event_rain_mm = event_rain_mm
+
+    out = format_pws(pws_result, units=Units.METRIC)
+
+    assert ("Event rain" in out) is expect_event_rain
 
 
 def test_format_pws_no_optional_fields():

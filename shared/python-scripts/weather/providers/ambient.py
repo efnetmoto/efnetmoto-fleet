@@ -84,13 +84,21 @@ class AmbientProvider(WeatherProvider):
             raw_uv = last.get("uv")
             uv_index: float | None = float(raw_uv) if raw_uv is not None else None
 
-            raw_rain = last.get("dailyrainin")
-            if raw_rain is not None:
-                rain_today_in: float | None = float(raw_rain)
+            raw_daily_rain = last.get("dailyrainin")
+            if raw_daily_rain is not None:
+                rain_today_in: float | None = float(raw_daily_rain)
                 rain_today_mm: float | None = inches_to_mm(rain_today_in)
             else:
                 rain_today_in = None
                 rain_today_mm = None
+
+            raw_event_rain = last.get("eventrainin")
+            if raw_event_rain is not None:
+                event_rain_in: float | None = float(raw_event_rain)
+                event_rain_mm: float | None = inches_to_mm(event_rain_in)
+            else:
+                event_rain_in = None
+                event_rain_mm = None
 
         except (KeyError, TypeError, ValueError, IndexError) as exc:
             raise ProviderError(f"Could not parse Ambient Weather response: {exc}")
@@ -113,4 +121,6 @@ class AmbientProvider(WeatherProvider):
             uv_index=uv_index,
             rain_today_in=rain_today_in,
             rain_today_mm=rain_today_mm,
+            event_rain_in=event_rain_in,
+            event_rain_mm=event_rain_mm,
         )
