@@ -36,6 +36,27 @@ services:
       - WEATHERAPI_KEY=${WEATHERAPI_KEY}
       - APRSFI_KEY=${APRSFI_KEY}
 
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN       # entrypoint chown -R /eggdrop to runtime UID:GID before privilege drop
+      - SETUID      # su-exec setuid() to drop from root to EGGDROP_UID
+      - SETGID      # su-exec setgid() to drop from root to EGGDROP_GID
+
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.10
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "1855"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
     networks:
       - xerokewl-net
 
