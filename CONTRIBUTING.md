@@ -291,7 +291,7 @@ cap_drop:
 cap_add:
   # list only what the service demonstrably needs; comment why
   # eggdrop entrypoint: CHOWN, SETUID, SETGID
-  # nginx master:       NET_BIND_SERVICE, SETUID, SETGID
+  # nginx master:       CHOWN, NET_BIND_SERVICE, SETUID, SETGID
   # pisg (non-root):    (none)
 
 mem_limit: <Xm>

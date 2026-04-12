@@ -122,6 +122,7 @@ services:
     cap_drop:
       - ALL
     cap_add:
+      - CHOWN           # entrypoint chowns /var/cache/nginx/* before privilege drop
       - NET_BIND_SERVICE  # master process binds to container port 80 (< 1024)
       - SETUID            # master forks workers and setuid() to nginx user
       - SETGID            # master forks workers and setgid() to nginx group
