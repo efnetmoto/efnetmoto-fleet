@@ -54,9 +54,23 @@ pisg:
     - ./logs/channels:/logs:ro
     - ./pisg-cache:/cache
     - ./html:/output
-    - ./config/pisg.cfg:/config/pisg.cfg:ro
+    - ./pisg-config:/config:ro
+  cap_drop:
+    - ALL
+  mem_limit: 64m
+  memswap_limit: 64m
+  cpus: 0.25
+  security_opt:
+    - no-new-privileges:true
+  healthcheck:
+    # checks that a stats file was generated within the last 2 cron intervals
+    test: ["CMD", "sh", "-c", "find /output/index.html -mmin -120 2>/dev/null | grep -q ."]
+    interval: 5m
+    timeout: 10s
+    retries: 3
+    start_period: 65m  # @hourly: first run may not happen until next hour tick
   environment:
-    - CRON_SCHEDULE="@hourly"
+    - CRON_SCHEDULE=${CRON_SCHEDULE}
 ```
 
 ## Log File Format

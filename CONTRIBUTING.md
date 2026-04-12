@@ -283,6 +283,36 @@ ansible-playbook deploy-pompone.yml --ask-become-pass --check
 - Document all variables in comments
 - Keep secrets in `.env` files (gitignored)
 
+**Security hardening — apply to every service:**
+
+```yaml
+cap_drop:
+  - ALL
+cap_add:
+  # list only what the service demonstrably needs; comment why
+  # eggdrop entrypoint: CHOWN, SETUID, SETGID
+  # nginx master:       NET_BIND_SERVICE, SETUID, SETGID
+  # pisg (non-root):    (none)
+
+mem_limit: <Xm>
+memswap_limit: <Xm>   # set equal to mem_limit (zero swap)
+cpus: <N>
+
+security_opt:
+  - no-new-privileges:true
+
+healthcheck:
+  test: [...]          # test function, not just process presence
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: <Xs>   # set to cover actual startup time
+```
+
+`no-new-privileges:true` is safe for all services here because privilege drops
+use direct `setuid()`/`setgid()` syscalls covered by `CAP_SETUID`/`CAP_SETGID`,
+not setuid file bits. See the existing compose files for per-service examples.
+
 ### Testing Changes
 
 **Before committing:**

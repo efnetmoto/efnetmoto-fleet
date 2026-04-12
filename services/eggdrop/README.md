@@ -51,15 +51,34 @@ pompone:
   container_name: pompone
   restart: unless-stopped
   stdin_open: true
+  ports:
+    - "${DCC_PORT}:2020"
+    - "${DCC_PORTRANGE}:${DCC_PORTRANGE}"
   volumes:
     - ./data:/eggdrop/data
     - ./logs:/eggdrop/logs
     - ../../shared/tcl-scripts:/eggdrop/scripts-shared
-    - ../../shared/python-scripts:/eggdrop/scripts-python-shared
   environment:
     - TZ=${TZ}
     - EGGDROP_UID=${UID}
     - EGGDROP_GID=${GID}
+  cap_drop:
+    - ALL
+  cap_add:
+    - CHOWN    # entrypoint chown -R /eggdrop before privilege drop
+    - SETUID   # su-exec setuid() to drop to EGGDROP_UID
+    - SETGID   # su-exec setgid() to drop to EGGDROP_GID
+  mem_limit: 64m
+  memswap_limit: 64m
+  cpus: 0.10
+  security_opt:
+    - no-new-privileges:true
+  healthcheck:
+    test: ["CMD", "nc", "-z", "127.0.0.1", "2020"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 60s  # allow time for chown, script load, DCC port bind
 ```
 
 ## Exposed Ports
