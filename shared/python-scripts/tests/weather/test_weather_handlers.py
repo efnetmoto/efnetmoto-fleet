@@ -21,7 +21,7 @@ _eggdrop_mock = sys.modules["eggdrop"]
 _putserv = MagicMock()
 _putlog = MagicMock()
 _bind = MagicMock(return_value=MagicMock())
-_validuser = MagicMock(return_value=1)
+_validuser = MagicMock(return_value="1")  # eggdrop's TCL validuser returns "1"/"0" as strings
 _eggdrop_mock.bind = _bind
 _eggdrop_mock.tcl.putserv = _putserv
 _eggdrop_mock.tcl.putlog = _putlog
@@ -55,7 +55,7 @@ def reset_mocks(putserv_mock, putlog_mock, validuser_mock):
     putserv_mock.reset_mock()
     putlog_mock.reset_mock()
     validuser_mock.reset_mock()
-    validuser_mock.return_value = 1  # registered by default
+    validuser_mock.return_value = "1"  # registered by default (string, as eggdrop returns)
 
 
 # handle_wzset — unrecognized user
@@ -115,8 +115,12 @@ def test_wz_user_registered_with_location():
 
 
 def test_wz_user_not_registered(validuser_mock, putserv_mock):
-    """--user foo where foo is unknown reports an error in channel."""
-    validuser_mock.return_value = 0
+    """--user foo where foo is unknown reports an error in channel.
+
+    eggdrop's TCL validuser returns the string "0" for unknown handles; the guard
+    must coerce via int() because `not "0"` is False in Python.
+    """
+    validuser_mock.return_value = "0"
     w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo")
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]

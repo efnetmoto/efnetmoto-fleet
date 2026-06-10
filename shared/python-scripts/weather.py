@@ -117,7 +117,13 @@ def _do_fetch_weather(
     target_user: str | None = None,
 ) -> None:
     if target_user:
-        if not validuser(target_user):
+        # eggdrop's TCL validuser returns the string "1"/"0", which is always truthy
+        # in Python. Coerce via int() so the guard actually fires for unknown handles.
+        try:
+            registered = bool(int(validuser(target_user)))
+        except (TypeError, ValueError):
+            registered = False
+        if not registered:
             putserv(f"PRIVMSG {channel} :{nick}: {target_user} is not registered with the bot.")
             return
         pref = prefs.get_pref(target_user)
