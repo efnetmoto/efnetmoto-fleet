@@ -107,13 +107,13 @@ def _pref_to_str(pref: UserPref) -> str:
 
 
 def _do_fetch_weather(
-    nick: str,
     handle: str,
     metar: bool,
     units: Units,
     query: str,
     units_explicit: bool,
-    channel: str,
+    reply_target: str,
+    prefix: str,
     target_user: str | None = None,
 ) -> None:
     if target_user:
@@ -124,11 +124,13 @@ def _do_fetch_weather(
         except (TypeError, ValueError):
             registered = False
         if not registered:
-            putserv(f"PRIVMSG {channel} :{nick}: {target_user} is not registered with the bot.")
+            putserv(
+                f"PRIVMSG {reply_target} :{prefix}{target_user} is not registered with the bot."
+            )
             return
         pref = prefs.get_pref(target_user)
         if pref is None or pref.location is None:
-            putserv(f"PRIVMSG {channel} :{nick}: {target_user} has no default location set.")
+            putserv(f"PRIVMSG {reply_target} :{prefix}{target_user} has no default location set.")
             return
         query = pref.location
         metar = pref.metar
@@ -137,17 +139,17 @@ def _do_fetch_weather(
     elif not query:
         if handle == "*":
             putserv(
-                f"PRIVMSG {channel} :{nick}: You must be registered with the bot"
+                f"PRIVMSG {reply_target} :{prefix}You must be registered with the bot"
                 f" to use a saved default. Try .wz <location>."
             )
             return
         pref = prefs.get_pref(handle)
         if pref is None:
-            putserv(f"PRIVMSG {channel} :{nick}: No default set. Use .wzset <location>.")
+            putserv(f"PRIVMSG {reply_target} :{prefix}No default set. Use .wzset <location>.")
             return
         if pref.location is None:
             putserv(
-                f"PRIVMSG {channel} :{nick}: No default location set."
+                f"PRIVMSG {reply_target} :{prefix}No default location set."
                 f" Use .wzset <location> to save one."
             )
             return
@@ -165,19 +167,19 @@ def _do_fetch_weather(
     try:
         loc = resolver.classify(query)
     except ResolverError:
-        putserv(f"PRIVMSG {channel} :{nick}: Unknown location. Try .wzhelp for usage.")
+        putserv(f"PRIVMSG {reply_target} :{prefix}Unknown location. Try .wzhelp for usage.")
         return
 
     try:
         provider = _router.route(loc, metar=metar)
     except ProviderError as e:
-        putserv(f"PRIVMSG {channel} :{nick}: {e}")
+        putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
         return
 
     try:
         result = provider.get_weather(loc)
     except ProviderError as e:
-        putserv(f"PRIVMSG {channel} :{nick}: {e}")
+        putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
         return
 
     if not metar:
@@ -196,45 +198,76 @@ def _do_fetch_weather(
     else:
         output = formatter.format_current(result, forecast=forecast, units=units)
 
-    putserv(f"PRIVMSG {channel} :{output}")
+    putserv(f"PRIVMSG {reply_target} :{output}")
 
 
-def handle_wz(nick: str, host: str, handle: str, channel: str, text: str) -> None:
+def _handle_wz_impl(
+    handle: str,
+    text: str,
+    reply_target: str,
+    prefix: str,
+) -> None:
     try:
         target_user, text = _extract_user_flag(text)
+
+        # --user is a channel-only lookup; reject when reply_target isn't an
+        # RFC 2811 channel name (i.e. invocation came via msg-bind).
+        if target_user and not reply_target.startswith(("#", "&")):
+            putserv(
+                f"PRIVMSG {reply_target} :--user only works in a channel."
+                f" Try .wz --user {target_user} in #channel."
+            )
+            return
 
         try:
             metar, units, query, units_explicit = parse_flags(text)
         except ParseFlagsError as e:
-            putserv(f"PRIVMSG {channel} :{nick}: {e}")
+            putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
             return
 
         if target_user and query:
             putserv(
-                f"PRIVMSG {channel} :{nick}: --user cannot be combined with a location query."
+                f"PRIVMSG {reply_target} :{prefix}--user cannot be combined with a location query."
                 f" Try .wz --user {target_user}"
             )
             return
 
-        _do_fetch_weather(nick, handle, metar, units, query, units_explicit, channel, target_user)
+        _do_fetch_weather(
+            handle, metar, units, query, units_explicit, reply_target, prefix, target_user
+        )
 
     except Exception:
         putlog(f"weather: unhandled exception in handle_wz:\n{traceback.format_exc()}")
-        putserv(f"PRIVMSG {channel} :{nick}: An unexpected error occurred. Please try again later.")
+        putserv(
+            f"PRIVMSG {reply_target} :{prefix}An unexpected error occurred. Please try again later."
+        )
 
 
-def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> None:
+def handle_wz(nick: str, host: str, handle: str, channel: str, text: str) -> None:
+    _handle_wz_impl(handle, text, reply_target=channel, prefix=f"{nick}: ")
+
+
+def handle_wz_msg(nick: str, host: str, handle: str, text: str) -> None:
+    _handle_wz_impl(handle, text, reply_target=nick, prefix="")
+
+
+def _handle_wzset_impl(
+    handle: str,
+    text: str,
+    reply_target: str,
+    prefix: str,
+) -> None:
     try:
         if handle == "*":
             putserv(
-                f"PRIVMSG {channel} :{nick}: You must be a registered bot user"
+                f"PRIVMSG {reply_target} :{prefix}You must be a registered bot user"
                 f" to save preferences. Try .wzhelp for usage."
             )
             return
 
         if not text.strip():
             putserv(
-                f"PRIVMSG {channel} :{nick}: Usage:"
+                f"PRIVMSG {reply_target} :{prefix}Usage:"
                 f" .wzset [--metar] [--metric|--imperial] <location>"
             )
             return
@@ -242,13 +275,13 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
         try:
             metar, units, location, units_explicit = parse_flags(text)
         except ParseFlagsError as e:
-            putserv(f"PRIVMSG {channel} :{nick}: {e}")
+            putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
             return
 
         if not location:
             if metar:
                 putserv(
-                    f"PRIVMSG {channel} :{nick}: --metar requires an ICAO code (e.g. KSFO). "
+                    f"PRIVMSG {reply_target} :{prefix}--metar requires an ICAO code (e.g. KSFO). "
                     f"Use .wzset --metar <ICAO> to save a METAR default."
                 )
                 return
@@ -257,7 +290,7 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
             pref.units = units
             prefs.set_pref(handle, pref)
             putserv(
-                f"PRIVMSG {channel} :{nick}: Preference updated."
+                f"PRIVMSG {reply_target} :{prefix}Preference updated."
                 f" Default is now {_pref_to_str(pref)}"
             )
             return
@@ -265,13 +298,15 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
         try:
             loc = resolver.classify(location)
         except ResolverError:
-            putserv(f"PRIVMSG {channel} :{nick}: Unknown location format. Try .wzhelp for usage.")
+            putserv(
+                f"PRIVMSG {reply_target} :{prefix}Unknown location format. Try .wzhelp for usage."
+            )
             return
 
         if metar and loc.type != LocationType.ICAO:
             putserv(
-                f"PRIVMSG {channel} :{nick}: --metar is only valid with ICAO codes (e.g. KSFO). "
-                f"Location not saved."
+                f"PRIVMSG {reply_target} :{prefix}--metar is only valid with ICAO codes"
+                f" (e.g. KSFO). Location not saved."
             )
             return
 
@@ -280,7 +315,7 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
             provider = _router.route(loc, metar=metar)
         except ProviderError as e:
             putserv(
-                f"PRIVMSG {channel} :{nick}: {e}"
+                f"PRIVMSG {reply_target} :{prefix}{e}"
                 f" Location not saved — check the location and try .wzset again."
             )
             return
@@ -289,7 +324,7 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
             provider.get_weather(loc)
         except ProviderError as e:
             putserv(
-                f"PRIVMSG {channel} :{nick}: {e}"
+                f"PRIVMSG {reply_target} :{prefix}{e}"
                 f" Location not saved — check the location and try .wzset again."
             )
             return
@@ -299,11 +334,21 @@ def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> 
         pref.metar = metar
         pref.units = units
         prefs.set_pref(handle, pref)
-        putserv(f"PRIVMSG {channel} :{nick}: Default set to {_pref_to_str(pref)}")
+        putserv(f"PRIVMSG {reply_target} :{prefix}Default set to {_pref_to_str(pref)}")
 
     except Exception:
         putlog(f"weather: unhandled exception in handle_wzset:\n{traceback.format_exc()}")
-        putserv(f"PRIVMSG {channel} :{nick}: An unexpected error occurred. Please try again later.")
+        putserv(
+            f"PRIVMSG {reply_target} :{prefix}An unexpected error occurred. Please try again later."
+        )
+
+
+def handle_wzset(nick: str, host: str, handle: str, channel: str, text: str) -> None:
+    _handle_wzset_impl(handle, text, reply_target=channel, prefix=f"{nick}: ")
+
+
+def handle_wzset_msg(nick: str, host: str, handle: str, text: str) -> None:
+    _handle_wzset_impl(handle, text, reply_target=nick, prefix="")
 
 
 HELP_LINES = [
@@ -337,6 +382,14 @@ def handle_wzhelp(nick: str, host: str, handle: str, channel: str, text: str | N
         putlog(f"weather: unhandled exception in handle_wzhelp:\n{traceback.format_exc()}")
 
 
+def handle_wzhelp_msg(nick: str, host: str, handle: str, text: str | None = None) -> None:
+    try:
+        for line in HELP_LINES:
+            putserv(f"PRIVMSG {nick} :{line}")
+    except Exception:
+        putlog(f"weather: unhandled exception in handle_wzhelp_msg:\n{traceback.format_exc()}")
+
+
 # Rehash safety: unbind previous iteration's binds before re-registering
 if "WZ_BINDS" in globals():
     for b in WZ_BINDS:
@@ -348,5 +401,8 @@ WZ_BINDS = [
     bind("pub", "*", ".wz", handle_wz),
     bind("pub", "*", ".wzset", handle_wzset),
     bind("pub", "*", ".wzhelp", handle_wzhelp),
-    bind("msg", "*", ".wzhelp", handle_wzhelp),
+    bind("msg", "*", ".w", handle_wz_msg),
+    bind("msg", "*", ".wz", handle_wz_msg),
+    bind("msg", "*", ".wzset", handle_wzset_msg),
+    bind("msg", "*", ".wzhelp", handle_wzhelp_msg),
 ]
