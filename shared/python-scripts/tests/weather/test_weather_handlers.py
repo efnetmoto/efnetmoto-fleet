@@ -148,8 +148,8 @@ def test_wz_user_with_explicit_imperial_overrides_pref():
     ):
         w.handle_wz("AskingNick", "host@example.com", "*", "#moto", "--user foo --imperial")
     mock_fetch.assert_called_once()
-    # units is the 4th positional arg (index 3): nick, handle, metar, units, ...
-    assert mock_fetch.call_args[0][3] == Units.IMPERIAL
+    # units is the 3rd positional arg (index 2): handle, metar, units, ...
+    assert mock_fetch.call_args[0][2] == Units.IMPERIAL
 
 
 def test_wz_user_combined_with_location_rejected(putserv_mock):
@@ -302,3 +302,107 @@ def test_wzhelp_sends_pm_lines(putserv_mock):
     final_msg = putserv_mock.call_args_list[-1][0][0]
     assert "PRIVMSG #moto :" in final_msg
     assert "help sent via PM" in final_msg
+
+
+# PM-bind adapters: handle_wz_msg / handle_wzset_msg / handle_wzhelp_msg
+
+
+def test_wz_msg_replies_to_nick_no_prefix(putserv_mock):
+    """PM invocation: reply target is the nick, no 'nick: ' prefix on errors."""
+    with patch.object(w.prefs, "get_pref", return_value=None):
+        w.handle_wz_msg("SomeNick", "host@example.com", "somehandle", "")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG SomeNick :")
+    body = msg.split(":", 1)[1]
+    assert not body.startswith("SomeNick:")  # no nick prefix in PM
+    assert "No default set" in msg
+
+
+def test_wz_msg_with_location_unregistered_user_allowed():
+    """Ad-hoc PM .wz <location> reaches the resolver for unregistered users."""
+    with (
+        patch.object(w._router, "route", side_effect=Exception("stop here")),
+        patch.object(w.resolver, "classify", return_value=MagicMock()) as mock_classify,
+    ):
+        w.handle_wz_msg("SomeNick", "host@example.com", "*", "94025")
+    mock_classify.assert_called_once_with("94025")
+
+
+def test_wz_msg_user_flag_rejected(putserv_mock):
+    """--user is channel-only; in PM, return a clear error to the user."""
+    w.handle_wz_msg("AskingNick", "host@example.com", "somehandle", "--user foo")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG AskingNick :")
+    assert "--user only works in a channel" in msg
+
+
+def test_wz_msg_conflicting_unit_flags_rejected(putserv_mock):
+    """Flag-parse errors in PM go to the nick with no prefix."""
+    w.handle_wz_msg("SomeNick", "host@example.com", "somehandle", "--metric --imperial 94025")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG SomeNick :")
+    assert "--metric or --imperial, not both" in msg
+
+
+def test_wzset_msg_unregistered_user_blocked(putserv_mock):
+    """PM .wzset for unregistered user is blocked, error goes to PM."""
+    w.handle_wzset_msg("SomeNick", "host@example.com", "*", "94025")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG SomeNick :")
+    assert "registered bot user" in msg
+
+
+def test_wzset_msg_saves_location(putserv_mock):
+    """PM .wzset <location> saves and confirms via PM, no nick prefix on the confirmation."""
+    mock_provider = MagicMock()
+    with (
+        patch.object(w._router, "route", return_value=mock_provider),
+        patch.object(w.prefs, "get_pref", return_value=None),
+        patch.object(w.prefs, "set_pref") as mock_set,
+    ):
+        w.handle_wzset_msg("SomeNick", "host@example.com", "somehandle", "94025")
+    mock_set.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG SomeNick :")
+    assert "Default set to" in msg
+    assert "94025" in msg
+    # No 'SomeNick: ' prefix on the body
+    body = msg.split(":", 1)[1]
+    assert not body.startswith("SomeNick:")
+
+
+def test_wzhelp_msg_no_channel_echo(putserv_mock):
+    """PM .wzhelp sends help lines only — no channel echo."""
+    w.handle_wzhelp_msg("SomeNick", "host@example.com", "somehandle")
+    assert putserv_mock.call_count == len(w.HELP_LINES)
+    for call in putserv_mock.call_args_list:
+        assert call[0][0].startswith("PRIVMSG SomeNick :")
+    # None of the calls should be the "help sent via PM" channel echo
+    for call in putserv_mock.call_args_list:
+        assert "help sent via PM" not in call[0][0]
+
+
+# Binds: each weather command routes to its expected handler.
+
+
+@pytest.mark.parametrize(
+    "kind,command,handler_name",
+    [
+        ("pub", ".w", "handle_wz"),
+        ("pub", ".wz", "handle_wz"),
+        ("pub", ".wzset", "handle_wzset"),
+        ("pub", ".wzhelp", "handle_wzhelp"),
+        ("msg", ".w", "handle_wz_msg"),
+        ("msg", ".wz", "handle_wz_msg"),
+        ("msg", ".wzset", "handle_wzset_msg"),
+        ("msg", ".wzhelp", "handle_wzhelp_msg"),
+    ],
+)
+def test_bind_registered(kind, command, handler_name):
+    """Each (kind, command) tuple is bound to the named handler — not just any handler."""
+    expected = (kind, "*", command, getattr(w, handler_name))
+    assert expected in [call[0] for call in _bind.call_args_list]
