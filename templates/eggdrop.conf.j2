@@ -164,7 +164,7 @@ proc evnt:init_server {type} {
 }
 
 set default-port 6667
-{% for server in irc_servers %}
+{% for server in irc_servers | shuffle %}
 {% if server.port is defined %}
 {% if server.password is defined %}
 server add {{ server.host }} {{ server.port }} {{ server.password }}
