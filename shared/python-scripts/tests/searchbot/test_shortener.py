@@ -9,7 +9,7 @@ from searchbot.shortener import shorten
 
 _SHORTENER_URL = "http://url-shortener:8080"
 _CREATE_URL = "http://url-shortener:8080/api/v1/links"
-_SHORT_URL = "https://go.efnetmoto.com/a7K2xP"
+_SHORT_URL = "https://short.example.com/a7K2xP"
 
 
 @responses_lib.activate

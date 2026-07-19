@@ -72,13 +72,13 @@ def _sent_messages(putserv_mock):
 
 
 def test_empty_query_replies_usage(putserv_mock):
-    sb.handle_search("alice", "h", "hand", "#moto", "")
+    sb.handle_search("alice", "h", "hand", "#test", "")
     putserv_mock.assert_called_once()
-    assert putserv_mock.call_args[0][0] == "PRIVMSG #moto :alice: Usage: !g <search query>"
+    assert putserv_mock.call_args[0][0] == "PRIVMSG #test :alice: Usage: !g <search query>"
 
 
 def test_whitespace_only_query_replies_usage(putserv_mock):
-    sb.handle_search("alice", "h", "hand", "#moto", "   ")
+    sb.handle_search("alice", "h", "hand", "#test", "   ")
     putserv_mock.assert_called_once()
     assert "Usage: !g" in putserv_mock.call_args[0][0]
 
@@ -86,7 +86,7 @@ def test_whitespace_only_query_replies_usage(putserv_mock):
 def test_overlong_query_rejected(putserv_mock):
     long_q = "x" * (sb._MAX_QUERY_LENGTH + 1)
     with patch.object(sb.brave, "search") as mock_search:
-        sb.handle_search("alice", "h", "hand", "#moto", long_q)
+        sb.handle_search("alice", "h", "hand", "#test", long_q)
     putserv_mock.assert_called_once()
     assert "too long" in putserv_mock.call_args[0][0].lower()
     # The length guard must short-circuit before any upstream call.
@@ -99,8 +99,8 @@ def test_overlong_query_rejected(putserv_mock):
 def test_rate_limited_replies_cooldown_message(putserv_mock):
     sb._rate_limiter = RateLimiter(5.0, 5.0)
     with patch.object(sb.brave, "search", return_value=[]) as mock_search:
-        sb.handle_search("alice", "h", "hand", "#moto", "rust")
-        sb.handle_search("alice", "h", "hand", "#moto", "rust again")
+        sb.handle_search("alice", "h", "hand", "#test", "rust")
+        sb.handle_search("alice", "h", "hand", "#test", "rust again")
     msgs = _sent_messages(putserv_mock)
     assert any("No results found" in m for m in msgs)  # first call completed
     assert any("Rate limited" in m for m in msgs)  # second call denied
@@ -114,11 +114,11 @@ def test_rate_limit_message_uses_nick_prefix(putserv_mock):
         # Two distinct queries so the second is a cache miss and reaches the
         # rate limiter (a repeat of the same query would be a cache hit and
         # never hit the limiter, per the cache-first ordering).
-        sb.handle_search("alice", "h", "hand", "#moto", "rust")
-        sb.handle_search("alice", "h", "hand", "#moto", "rust again")
+        sb.handle_search("alice", "h", "hand", "#test", "rust")
+        sb.handle_search("alice", "h", "hand", "#test", "rust again")
     rate_msgs = [m for m in _sent_messages(putserv_mock) if "Rate limited" in m]
     assert rate_msgs
-    assert rate_msgs[0].startswith("PRIVMSG #moto :alice: ")
+    assert rate_msgs[0].startswith("PRIVMSG #test :alice: ")
 
 
 # --- cache ---
@@ -133,7 +133,7 @@ def test_cache_hit_skips_brave_and_shortener(putserv_mock):
             ),
             SearchResult("The Rust Book", "https://doc.rust-lang.org/book/", "doc.rust-lang.org"),
         ],
-        short_urls=["https://go.efnetmoto.com/a7K2", "https://go.efnetmoto.com/b91Q"],
+        short_urls=["https://short.example.com/a7K2", "https://short.example.com/b91Q"],
         created_at=0.0,
         expires_at=1e12,
     )
@@ -142,16 +142,16 @@ def test_cache_hit_skips_brave_and_shortener(putserv_mock):
         patch.object(sb.brave, "search") as mock_search,
         patch.object(sb.shortener, "shorten") as mock_shorten,
     ):
-        sb.handle_search("alice", "h", "hand", "#moto", "rust async")
+        sb.handle_search("alice", "h", "hand", "#test", "rust async")
     mock_search.assert_not_called()
     mock_shorten.assert_not_called()
     msgs = _sent_messages(putserv_mock)
     assert (
-        "PRIVMSG #moto :[rust-lang.org] \x02Rust Programming Language\x02"
-        " → https://go.efnetmoto.com/a7K2"
+        "PRIVMSG #test :[rust-lang.org] \x02Rust Programming Language\x02"
+        " → https://short.example.com/a7K2"
     ) in msgs
     assert (
-        "PRIVMSG #moto :[doc.rust-lang.org] \x02The Rust Book\x02 → https://go.efnetmoto.com/b91Q"
+        "PRIVMSG #test :[doc.rust-lang.org] \x02The Rust Book\x02 → https://short.example.com/b91Q"
     ) in msgs
 
 
@@ -161,14 +161,14 @@ def test_successful_search_populates_cache(putserv_mock):
         patch.object(sb.brave, "search", return_value=results),
         patch.object(sb.shortener, "shorten", return_value="https://s"),
     ):
-        sb.handle_search("alice", "h", "hand", "#moto", "rust")
+        sb.handle_search("alice", "h", "hand", "#test", "rust")
     assert sb._cache.get("rust") is not None
 
 
 def test_zero_results_cached_skips_brave_on_repeat(putserv_mock):
     with patch.object(sb.brave, "search", return_value=[]) as mock_search:
-        sb.handle_search("alice", "h", "hand", "#moto", "nonsense")
-        sb.handle_search("bob", "h", "hand", "#moto", "nonsense")
+        sb.handle_search("alice", "h", "hand", "#test", "nonsense")
+        sb.handle_search("bob", "h", "hand", "#test", "nonsense")
     assert mock_search.call_count == 1
     msgs = _sent_messages(putserv_mock)
     assert all("No results found" in m for m in msgs)
@@ -186,8 +186,8 @@ def test_repeat_query_normalized_hits_cache_skips_brave(putserv_mock):
         ) as mock_search,
         patch.object(sb.shortener, "shorten", return_value="https://s"),
     ):
-        sb.handle_search("alice", "h", "hand", "#moto", "Rust Async")
-        sb.handle_search("bob", "h", "hand", "#moto", "  rust   async  ")
+        sb.handle_search("alice", "h", "hand", "#test", "Rust Async")
+        sb.handle_search("bob", "h", "hand", "#test", "  rust   async  ")
     assert mock_search.call_count == 1
 
 
@@ -196,17 +196,17 @@ def test_repeat_query_normalized_hits_cache_skips_brave(putserv_mock):
 
 def test_brave_error_replies_with_message(putserv_mock, putlog_mock):
     with patch.object(sb.brave, "search", side_effect=BraveError("Search timed out.")):
-        sb.handle_search("alice", "h", "hand", "#moto", "rust")
+        sb.handle_search("alice", "h", "hand", "#test", "rust")
     putserv_mock.assert_called_once()
-    assert putserv_mock.call_args[0][0] == "PRIVMSG #moto :alice: Search timed out."
+    assert putserv_mock.call_args[0][0] == "PRIVMSG #test :alice: Search timed out."
     putlog_mock.assert_called()
 
 
 def test_zero_results_replies_no_results(putserv_mock):
     with patch.object(sb.brave, "search", return_value=[]):
-        sb.handle_search("alice", "h", "hand", "#moto", "nonsense")
+        sb.handle_search("alice", "h", "hand", "#test", "nonsense")
     putserv_mock.assert_called_once()
-    assert putserv_mock.call_args[0][0] == "PRIVMSG #moto :alice: No results found for: nonsense"
+    assert putserv_mock.call_args[0][0] == "PRIVMSG #test :alice: No results found for: nonsense"
 
 
 # --- shortener fallback ---
@@ -221,17 +221,17 @@ def test_shortener_failure_falls_back_to_original_url(putserv_mock, putlog_mock)
     def shorten_side(url, api_url, api_key, timeout=5.0):
         if url == "https://first.example/long":
             raise ShortenerError("shortener returned HTTP 500")
-        return "https://go.efnetmoto.com/xyz"
+        return "https://short.example.com/xyz"
 
     with (
         patch.object(sb.brave, "search", return_value=results),
         patch.object(sb.shortener, "shorten", side_effect=shorten_side),
     ):
-        sb.handle_search("alice", "h", "hand", "#moto", "test")
+        sb.handle_search("alice", "h", "hand", "#test", "test")
     msgs = _sent_messages(putserv_mock)
-    assert msgs[0] == ("PRIVMSG #moto :[first.example] \x02First\x02 → https://first.example/long")
+    assert msgs[0] == ("PRIVMSG #test :[first.example] \x02First\x02 → https://first.example/long")
     assert msgs[1] == (
-        "PRIVMSG #moto :[second.example] \x02Second\x02 → https://go.efnetmoto.com/xyz"
+        "PRIVMSG #test :[second.example] \x02Second\x02 → https://short.example.com/xyz"
     )
     # The failure was logged (with the destination URL, never the API key).
     assert any("shortener error" in c[0][0] for c in putlog_mock.call_args_list)
@@ -246,20 +246,20 @@ def test_full_happy_path(putserv_mock):
         SearchResult("Rust Programming Language", "https://www.rust-lang.org/", "rust-lang.org"),
         SearchResult("The Rust Book", "https://doc.rust-lang.org/book/", "doc.rust-lang.org"),
     ]
-    short_urls = ["https://go.efnetmoto.com/a7K2", "https://go.efnetmoto.com/b91Q"]
+    short_urls = ["https://short.example.com/a7K2", "https://short.example.com/b91Q"]
     with (
         patch.object(sb.brave, "search", return_value=results),
         patch.object(sb.shortener, "shorten", side_effect=short_urls),
     ):
-        sb.handle_search("alice", "h", "hand", "#moto", "rust async")
+        sb.handle_search("alice", "h", "hand", "#test", "rust async")
     msgs = _sent_messages(putserv_mock)
     assert len(msgs) == 2
     assert msgs[0] == (
-        "PRIVMSG #moto :[rust-lang.org] \x02Rust Programming Language\x02"
-        " → https://go.efnetmoto.com/a7K2"
+        "PRIVMSG #test :[rust-lang.org] \x02Rust Programming Language\x02"
+        " → https://short.example.com/a7K2"
     )
     assert msgs[1] == (
-        "PRIVMSG #moto :[doc.rust-lang.org] \x02The Rust Book\x02 → https://go.efnetmoto.com/b91Q"
+        "PRIVMSG #test :[doc.rust-lang.org] \x02The Rust Book\x02 → https://short.example.com/b91Q"
     )
 
 
@@ -268,7 +268,7 @@ def test_full_happy_path(putserv_mock):
 
 def test_unexpected_exception_replies_generic(putserv_mock, putlog_mock):
     with patch.object(sb.brave, "search", side_effect=RuntimeError("boom")):
-        sb.handle_search("alice", "h", "hand", "#moto", "rust")
+        sb.handle_search("alice", "h", "hand", "#test", "rust")
     putserv_mock.assert_called_once()
     assert "unexpected error" in putserv_mock.call_args[0][0].lower()
     putlog_mock.assert_called()

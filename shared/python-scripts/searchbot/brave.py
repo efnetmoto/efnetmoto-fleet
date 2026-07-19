@@ -42,7 +42,7 @@ def _domain_of(url: str) -> str:
 
 
 # IRC delimits messages with CRLF, so a newline embedded in a Brave result
-# title would terminate Pompone's PRIVMSG and the remainder would be parsed
+# title would terminate the bot's PRIVMSG and the remainder would be parsed
 # as a fresh IRC command issued by the bot — command injection from any page
 # Brave indexes. Sanitize at ingestion so the invariant lives on the model
 # and every display site (putserv, future ones) inherits it.
