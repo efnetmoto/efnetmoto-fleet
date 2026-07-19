@@ -130,19 +130,18 @@ func TestCreate_CollisionRetry_Succeeds(t *testing.T) {
 	// are already present (each colliding once), then a unique one. Create
 	// must retry past the collisions and return the unique ID, having
 	// invoked the generator exactly four times.
-	s := newTestStore(t)
 	ctx := context.Background()
 
 	calls := 0
 	collisions := []string{"collide1", "collide2", "collide3"}
 	const unique = "unique1"
-	s.generate = func(int) (string, error) {
+	s := newTestStore(t, WithGenerator(func(int) (string, error) {
 		calls++
 		if calls <= len(collisions) {
 			return collisions[calls-1], nil
 		}
 		return unique, nil
-	}
+	}))
 
 	// Pre-insert the collision IDs so the generator's repeated values hit
 	// the UNIQUE constraint and force a retry.
@@ -176,17 +175,16 @@ func TestCreate_CollisionExhaustedRetries(t *testing.T) {
 	// Generator always returns the same ID, which is already present, so
 	// every attempt collides. Create must give up with ErrExhaustedRetries
 	// rather than overwriting the existing mapping.
-	s := newTestStore(t)
 	ctx := context.Background()
 
 	const dup = "dup-id"
+	s := newTestStore(t, WithGenerator(func(int) (string, error) { return dup, nil }))
 	if _, err := s.db.ExecContext(ctx,
 		`INSERT INTO links (short_id, destination_url, created_at) VALUES (?, ?, ?)`,
 		dup, "https://example.com/pre", time.Now().UTC().Format(time.RFC3339),
 	); err != nil {
 		t.Fatalf("seed insert: %v", err)
 	}
-	s.generate = func(int) (string, error) { return dup, nil }
 
 	_, err := s.Create(ctx, "https://example.com/y")
 	if !errors.Is(err, ErrExhaustedRetries) {
@@ -208,14 +206,13 @@ func TestCreate_CollisionExhaustedRetries(t *testing.T) {
 func TestCreate_GeneratorError(t *testing.T) {
 	// A generator failure is not a collision; Create must surface it
 	// immediately without retrying.
-	s := newTestStore(t)
 	ctx := context.Background()
 
 	calls := 0
-	s.generate = func(int) (string, error) {
+	s := newTestStore(t, WithGenerator(func(int) (string, error) {
 		calls++
 		return "", errors.New("generator broken")
-	}
+	}))
 	_, err := s.Create(ctx, "https://example.com/z")
 	if err == nil {
 		t.Fatal("Create: expected error from generator failure, got nil")
