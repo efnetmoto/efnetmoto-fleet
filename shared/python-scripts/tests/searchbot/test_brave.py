@@ -139,3 +139,33 @@ def test_api_key_not_in_exception_message():
     with pytest.raises(BraveError) as exc_info:
         search("x", "super-secret-key-do-not-leak")
     assert "super-secret-key-do-not-leak" not in str(exc_info.value)
+
+
+@responses_lib.activate
+def test_result_domain_strips_www(two_results):
+    responses_lib.add(responses_lib.GET, _BRAVE_URL, json=two_results, status=200)
+    results = search("rust", "test-key")
+    assert results[0].domain == "rust-lang.org"
+    assert results[1].domain == "doc.rust-lang.org"
+
+
+@pytest.mark.parametrize(
+    "url,expected_domain",
+    [
+        pytest.param("https://www.example.com/page", "example.com", id="strips_www"),
+        pytest.param("https://example.com/page", "example.com", id="no_www"),
+        pytest.param("https://sub.example.com/", "sub.example.com", id="keeps_subdomain"),
+        pytest.param("https://example.com:8443/x", "example.com", id="strips_port"),
+        pytest.param("not-a-url", "not-a-url", id="malformed_falls_back_to_raw"),
+    ],
+)
+@responses_lib.activate
+def test_result_domain_extracted_from_url(url, expected_domain):
+    responses_lib.add(
+        responses_lib.GET,
+        _BRAVE_URL,
+        json={"web": {"results": [{"title": "T", "url": url}]}},
+        status=200,
+    )
+    results = search("x", "test-key")
+    assert results[0].domain == expected_domain

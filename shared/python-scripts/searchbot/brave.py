@@ -5,6 +5,8 @@ sent only via the ``X-Subscription-Token`` header and is never included in
 exception messages.
 """
 
+from urllib.parse import urlparse
+
 import requests
 
 from searchbot.exceptions import BraveError
@@ -20,6 +22,21 @@ _HEADERS = {
     # Accept-Encoding is intentionally omitted: requests/urllib3 negotiate
     # gzip+deflate automatically.
 }
+
+
+def _domain_of(url: str) -> str:
+    """Return a display domain for ``url``, stripping a leading ``www.``.
+
+    Brave URLs are expected to be absolute with a scheme, so ``urlparse``
+    yields a real hostname. For anything malformed we degrade to ``netloc``
+    then to the raw ``url`` rather than raising — a single weird result must
+    not sink the whole response (the shortener-fallback philosophy: never
+    let one failure block a result).
+    """
+    host = urlparse(url).hostname or urlparse(url).netloc
+    if not host:
+        return url
+    return host[4:] if host.startswith("www.") else host
 
 
 def search(query: str, api_key: str, count: int = 2, timeout: float = 5.0) -> list[SearchResult]:
@@ -75,7 +92,9 @@ def search(query: str, api_key: str, count: int = 2, timeout: float = 5.0) -> li
         # `raw` is proven a dict by the guard above, so subscript can only
         # raise KeyError here — TypeError would require a non-dict mapping.
         try:
-            results.append(SearchResult(title=raw["title"], url=raw["url"]))
+            title = raw["title"]
+            url = raw["url"]
         except KeyError:
             raise BraveError(_UNAVAILABLE)
+        results.append(SearchResult(title=title, url=url, domain=_domain_of(url)))
     return results
