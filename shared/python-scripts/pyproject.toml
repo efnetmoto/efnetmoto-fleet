@@ -23,6 +23,7 @@ select = ["E", "F", "I"]  # pycodestyle, pyflakes, isort
 
 [tool.ruff.lint.per-file-ignores]
 "weather.py" = ["F821"]  # eggdrop globals (putserv, putlog, bind) are injected at runtime
+"searchbot.py" = ["F821"]  # rehash block references SEARCHBOT_BINDS before its (re)definition
 "tests/weather/test_prefs.py" = ["E402"]  # sys.modules patching must precede local imports
 
 [tool.ruff.format]
