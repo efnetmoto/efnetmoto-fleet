@@ -8,10 +8,20 @@ from dataclasses import dataclass
 
 @dataclass
 class SearchResult:
-    """A single Brave web search result as shown to IRC."""
+    """A single Brave web search result as shown to IRC.
+
+    ``domain`` is the display hostname extracted from ``url`` (leading
+    ``www.`` stripped) by ``brave.search`` at ingestion. It is an intrinsic
+    projection of the result — not a mirror of the Brave response — so it
+    lives on the model rather than being re-derived at every display site.
+    Contrast ``short_urls``, which depends on an external service (the
+    shortener) and so is held as a parallel list by the caller, not as a
+    field here.
+    """
 
     title: str
     url: str
+    domain: str
 
 
 @dataclass

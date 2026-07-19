@@ -78,9 +78,9 @@ def _send_results(
 ) -> None:
     """Send formatted result lines, or the no-results message, to ``reply_target``.
 
-    Result lines carry no nick prefix (result lines are bare numbered lines
-    like "1. <title> — <url>"); only the no-results message is prefixed,
-    since it directly addresses the asking user.
+    Result lines carry no nick prefix (result lines are bare lines like
+    "[<domain>] <bold>title</bold> → <url>"); only the no-results message is
+    prefixed, since it directly addresses the asking user.
     """
     if not results:
         putserv(f"PRIVMSG {reply_target} :{prefix}No results found for: {query}")

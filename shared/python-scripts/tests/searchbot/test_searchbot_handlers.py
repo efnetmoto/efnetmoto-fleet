@@ -128,8 +128,10 @@ def test_cache_hit_skips_brave_and_shortener(putserv_mock):
     entry = CacheEntry(
         query="rust async",
         results=[
-            SearchResult("Rust Programming Language", "https://www.rust-lang.org/"),
-            SearchResult("The Rust Book", "https://doc.rust-lang.org/book/"),
+            SearchResult(
+                "Rust Programming Language", "https://www.rust-lang.org/", "rust-lang.org"
+            ),
+            SearchResult("The Rust Book", "https://doc.rust-lang.org/book/", "doc.rust-lang.org"),
         ],
         short_urls=["https://go.efnetmoto.com/a7K2", "https://go.efnetmoto.com/b91Q"],
         created_at=0.0,
@@ -144,12 +146,17 @@ def test_cache_hit_skips_brave_and_shortener(putserv_mock):
     mock_search.assert_not_called()
     mock_shorten.assert_not_called()
     msgs = _sent_messages(putserv_mock)
-    assert "PRIVMSG #moto :1. Rust Programming Language — https://go.efnetmoto.com/a7K2" in msgs
-    assert "PRIVMSG #moto :2. The Rust Book — https://go.efnetmoto.com/b91Q" in msgs
+    assert (
+        "PRIVMSG #moto :[rust-lang.org] \x02Rust Programming Language\x02"
+        " → https://go.efnetmoto.com/a7K2"
+    ) in msgs
+    assert (
+        "PRIVMSG #moto :[doc.rust-lang.org] \x02The Rust Book\x02 → https://go.efnetmoto.com/b91Q"
+    ) in msgs
 
 
 def test_successful_search_populates_cache(putserv_mock):
-    results = [SearchResult("T", "https://x")]
+    results = [SearchResult("T", "https://x", "x")]
     with (
         patch.object(sb.brave, "search", return_value=results),
         patch.object(sb.shortener, "shorten", return_value="https://s"),
@@ -175,7 +182,7 @@ def test_repeat_query_normalized_hits_cache_skips_brave(putserv_mock):
     """
     with (
         patch.object(
-            sb.brave, "search", return_value=[SearchResult("T", "https://x")]
+            sb.brave, "search", return_value=[SearchResult("T", "https://x", "x")]
         ) as mock_search,
         patch.object(sb.shortener, "shorten", return_value="https://s"),
     ):
@@ -207,8 +214,8 @@ def test_zero_results_replies_no_results(putserv_mock):
 
 def test_shortener_failure_falls_back_to_original_url(putserv_mock, putlog_mock):
     results = [
-        SearchResult("First", "https://first.example/long"),
-        SearchResult("Second", "https://second.example/long"),
+        SearchResult("First", "https://first.example/long", "first.example"),
+        SearchResult("Second", "https://second.example/long", "second.example"),
     ]
 
     def shorten_side(url, api_url, api_key, timeout=5.0):
@@ -222,8 +229,10 @@ def test_shortener_failure_falls_back_to_original_url(putserv_mock, putlog_mock)
     ):
         sb.handle_search("alice", "h", "hand", "#moto", "test")
     msgs = _sent_messages(putserv_mock)
-    assert msgs[0] == "PRIVMSG #moto :1. First — https://first.example/long"
-    assert msgs[1] == "PRIVMSG #moto :2. Second — https://go.efnetmoto.com/xyz"
+    assert msgs[0] == ("PRIVMSG #moto :[first.example] \x02First\x02 → https://first.example/long")
+    assert msgs[1] == (
+        "PRIVMSG #moto :[second.example] \x02Second\x02 → https://go.efnetmoto.com/xyz"
+    )
     # The failure was logged (with the destination URL, never the API key).
     assert any("shortener error" in c[0][0] for c in putlog_mock.call_args_list)
     assert not any("super-secret" in c[0][0] for c in putlog_mock.call_args_list)
@@ -234,8 +243,8 @@ def test_shortener_failure_falls_back_to_original_url(putserv_mock, putlog_mock)
 
 def test_full_happy_path(putserv_mock):
     results = [
-        SearchResult("Rust Programming Language", "https://www.rust-lang.org/"),
-        SearchResult("The Rust Book", "https://doc.rust-lang.org/book/"),
+        SearchResult("Rust Programming Language", "https://www.rust-lang.org/", "rust-lang.org"),
+        SearchResult("The Rust Book", "https://doc.rust-lang.org/book/", "doc.rust-lang.org"),
     ]
     short_urls = ["https://go.efnetmoto.com/a7K2", "https://go.efnetmoto.com/b91Q"]
     with (
@@ -245,8 +254,13 @@ def test_full_happy_path(putserv_mock):
         sb.handle_search("alice", "h", "hand", "#moto", "rust async")
     msgs = _sent_messages(putserv_mock)
     assert len(msgs) == 2
-    assert msgs[0] == "PRIVMSG #moto :1. Rust Programming Language — https://go.efnetmoto.com/a7K2"
-    assert msgs[1] == "PRIVMSG #moto :2. The Rust Book — https://go.efnetmoto.com/b91Q"
+    assert msgs[0] == (
+        "PRIVMSG #moto :[rust-lang.org] \x02Rust Programming Language\x02"
+        " → https://go.efnetmoto.com/a7K2"
+    )
+    assert msgs[1] == (
+        "PRIVMSG #moto :[doc.rust-lang.org] \x02The Rust Book\x02 → https://go.efnetmoto.com/b91Q"
+    )
 
 
 # --- catch-all ---

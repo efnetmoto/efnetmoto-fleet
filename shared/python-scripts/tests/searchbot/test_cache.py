@@ -56,7 +56,7 @@ def test_clear_removes_all():
 
 def test_stored_results_round_trip():
     c = SearchCache(ttl_seconds=3600)
-    results = [SearchResult("T", "https://x")]
+    results = [SearchResult("T", "https://x", "x")]
     entry = CacheEntry(
         query="q",
         results=results,
