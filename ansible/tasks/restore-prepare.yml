@@ -40,7 +40,7 @@
 
 - name: Check if docker-compose override exists
   ansible.builtin.stat:
-    path: "{{ staging_dir }}/overrides/docker-compose.override.yml"
+    path: "{{ staging_dir.path }}/overrides/docker-compose.override.yml"
   register: compose_override
 
 - name: Restore docker-compose override
