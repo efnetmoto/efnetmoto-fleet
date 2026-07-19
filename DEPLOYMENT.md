@@ -400,8 +400,10 @@ All files should be owned by the user running the Ansible playbooks.
 
 ## Ansible Vault Setup
 
-Only required if you are deploying Xerokewl. Decisis and Pompone have no vaulted
-variables and deploy without this step.
+Required if you are deploying Xerokewl or Pompone. Decisis has no vaulted
+variables and deploys without this step. Xerokewl needs the vault for the
+WeatherAPI key; Pompone needs it for the URL shortener API key
+(`vault_shortener_api_key`).
 
 The vault password is shared among bot owners out of band — get it from another
 bot owner. Once you have it, create two files:
@@ -425,7 +427,9 @@ Xerokewl deploys pick up the vault password automatically.
 - **SSH Keys:** Private keys never leave your host. Only public keys are committed.
 - **Backup Files:** Contain sensitive data (user passwords, channel keys). Stored with 0600 permissions.
 - **Docker Compose Overrides:** Can contain sensitive configuration. These files are gitignored.
-- **Ansible Vault:** Used for the WeatherAPI key (`vault_weatherapi_key` in `ansible/group_vars/vault.yml`).
+- **Ansible Vault:** Used for the WeatherAPI key (`vault_weatherapi_key` in
+  `ansible/group_vars/vault.yml`) and the URL shortener API key
+  (`vault_shortener_api_key`).
 
 ## Getting Help
 
@@ -440,6 +444,10 @@ Xerokewl deploys pick up the vault password automatically.
 - Runs PISG statistics (cron job installed automatically)
 - Annual stats rotation on January 1st
 - Stats available at https://stats.efnetmoto.com/
+- Runs the `url-shortener` service (`go.efnetmoto.com`); requires the
+  `vault_shortener_api_key` Vault secret. The create API is reachable only
+  on `pompone-net`; the public redirect endpoint is exposed via a reverse
+  proxy configured in a gitignored `docker-compose.override.yml`.
 
 ### Decisis
 - Hosts IRC seen database

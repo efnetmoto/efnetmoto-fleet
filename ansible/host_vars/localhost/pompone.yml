@@ -28,6 +28,7 @@ environment_variables:
   stats_port: 8080  # Stats HTTP Port (nginx)
   cron_schedule: "{{ pisg_cron_schedule }}"
   tz: "America/Los_Angeles"
+  shortener_api_key: "{{ vault_shortener_api_key }}"
 
 # Runtime directories to create
 runtime_dirs:
@@ -38,6 +39,7 @@ runtime_dirs:
   - "bots/Pompone/pisg-cache"
   - "bots/Pompone/pisg-config"
   - "bots/Pompone/html"
+  - "bots/Pompone/url-shortener-data"
 
 # Separate log directories for pisg processing
 separate_log_dirs: true

@@ -21,6 +21,7 @@
       - html
       - pisg-cache
       - pisg-config
+      - url-shortener-data
 
   tasks:
     # Phase 1: Common backup preparation and base data
@@ -101,6 +102,23 @@
         mode: '0644'
       loop: "{{ archives_files.files }}"
       when: archives_files.matched > 0
+
+    - name: Collect url-shortener data files
+      ansible.builtin.find:
+        paths: "{{ bot_dir }}/url-shortener-data"
+        file_type: file
+        excludes:
+          - README.md
+      register: url_shortener_data_files
+
+    - name: Copy url-shortener data files
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ staging_dir.path }}/url-shortener-data/{{ item.path | basename }}"
+        remote_src: true
+        mode: preserve
+      loop: "{{ url_shortener_data_files.files }}"
+      when: url_shortener_data_files.matched > 0
 
     # Phase 3: Finalize backup
     - name: Finalize backup

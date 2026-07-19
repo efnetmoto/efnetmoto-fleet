@@ -26,7 +26,8 @@ docker compose restart
 docker compose down
 ```
 
-CI linters: `yamllint`, `ansible-lint`, `shellcheck`, `hadolint`, `markdownlint`, `gitleaks`, `tclint`
+CI linters: `yamllint`, `ansible-lint`, `shellcheck`, `hadolint`, `markdownlint`,
+`gitleaks`, `tclint`, `gofmt`, `go vet`, `staticcheck`
 
 Before running any linter, verify it is installed (`command -v <tool>`). If a tool is
 missing, do not attempt to install it — tell the user to follow the Dev Prerequisites
@@ -46,6 +47,13 @@ cd shared/python-scripts
 uv run --python 3.12 --extra dev ruff check .        # lint
 uv run --python 3.12 --extra dev ruff format .       # auto-format in place
 uv run --python 3.12 --extra dev ruff format --check . # dry-run (CI mode)
+
+# Go tests + lint (run from services/url-shortener/)
+cd services/url-shortener
+go test -race ./...            # tests with the race detector
+gofmt -l .                     # check formatting (empty output = clean)
+go vet ./...                   # vet
+staticcheck ./...              # static analysis
 ```
 
 ## Architecture
@@ -54,7 +62,8 @@ uv run --python 3.12 --extra dev ruff format --check . # dry-run (CI mode)
 
 **Bots:**
 
-- `Pompone` — main bot + PISG stats (<https://stats.efnetmoto.com/>), hourly HTML generation
+- `Pompone` — main bot + PISG stats (<https://stats.efnetmoto.com/>), hourly HTML
+  generation; also runs the `url-shortener` service (`go.efnetmoto.com`)
 - `Decisis` — seen DB (tracks which nicks have been seen in channel)
 - `Xerokewl` — quote engine
 
@@ -63,7 +72,7 @@ All bots run as peers in an Eggdrop botnet (mesh, no primary/master). Link via D
 **Key directories:**
 
 - `templates/` — shared Jinja2 templates (`eggdrop.conf.j2`, `pisg.cfg.j2`)
-- `services/` — shared Dockerfiles (`eggdrop/`, `pisg/`)
+- `services/` — shared Dockerfiles (`eggdrop/`, `pisg/`, `url-shortener/`)
 - `shared/tcl-scripts/` — TCL scripts available to all bots via volume mount
 - `shared/python-scripts/` — Python scripts available to all bots via volume mount (`weather.py` entry point + `weather/` package)
 - `ansible/tasks/` — common task includes (`deploy-prepare.yml`, `deploy-finalize.yml`, etc.)

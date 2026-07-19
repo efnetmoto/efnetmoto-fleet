@@ -19,6 +19,14 @@ Runs on pull requests to the `main` branch.
 1. **tclint** - Check TCL formatting
 1. **secrets-scan** - Scans for accidentally committed secrets
 
+### Go Tests (go-tests.yml)
+
+Runs on pull requests that touch `services/url-shortener/**`. A separate
+workflow from `ci.yml` because the Go toolchain is isolated to the
+`url-shortener` service.
+
+**Steps:** gofmt check, `go vet`, `staticcheck`, `go test -race`.
+
 ## Linter Configurations
 
 - `.yamllint.yml` - YAML linting rules
@@ -52,6 +60,9 @@ markdownlint '**/*.md'
 # TCLint
 tclfmt --check .
 tclint .
+
+# Go tests + lint (url-shortener)
+cd services/url-shortener && go test -race ./... && gofmt -l . && go vet ./... && staticcheck ./...
 ```
 
 ## Installing Local Tools
@@ -72,6 +83,10 @@ npm install -g markdownlint-cli
 
 # TCLint
 pip install tclint
+
+# Go (url-shortener) — Go 1.25+
+# Install from https://go.dev/dl/, then:
+go install honnef.co/go/tools/cmd/staticcheck@latest
 ```
 
 ## Skipping CI

@@ -19,6 +19,7 @@ efnetmoto-fleet/
 │   ├── eggdrop//
 │   ├── pisg/
 │   ├── nginx/
+│   ├── url-shortener/
 │   └── ...
 ├── shared/                     # Common TCL scripts
 │   └── tcl-scripts/
@@ -65,6 +66,7 @@ The `services/` directory contains Dockerfiles for all services used across bots
 - `eggdrop//` - Custom eggdrop container based with UID adjusted to match other fleet services
 - `pisg/` - IRC log analyzer (used by Pompone)
 - `nginx/` - Custom nginx service to resolve UID mismatch between eggdrop/pisg/nginx containers
+- `url-shortener/` - Go URL-shortening service with an authenticated create API and public redirect endpoint (used by Pompone)
 - Additional services as needed
 
 Each bot's `docker-compose.yml` references these service definitions via build context.
@@ -136,6 +138,9 @@ If adding a new bot to the network, link it via DCC chat:
 - Generates HTML stats every hour
 - Generated stats output available in `bots/Pompone/html/`
 - Uses separate log directories (bot/ and channels/) for pisg processing
+- Runs the `url-shortener` service (`go.efnetmoto.com`): an authenticated
+  create API reachable on `pompone-net` (for the IRC Search Bot) and a public
+  redirect endpoint exposed via a reverse proxy in a gitignored override
 
 ### Xerokewl
 
