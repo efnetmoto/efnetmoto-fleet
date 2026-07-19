@@ -4,7 +4,7 @@ import pytest
 import requests
 import responses as responses_lib
 
-from searchbot.brave import search
+from searchbot.brave import _sanitize_title, search
 from searchbot.exceptions import BraveError
 
 _BRAVE_URL = "https://api.search.brave.com/res/v1/web/search"
@@ -124,6 +124,11 @@ def test_malformed_json_raises_brave_error():
         pytest.param({"web": {"results": "oops"}}, id="results_not_a_list"),
         pytest.param({"web": {"results": ["not a dict"]}}, id="result_not_a_dict"),
         pytest.param({"web": {"results": [{"title": "no url"}]}}, id="result_missing_url"),
+        pytest.param(
+            {"web": {"results": [{"title": None, "url": "https://x"}]}}, id="title_not_a_string"
+        ),
+        pytest.param({"web": {"results": [{"title": "T", "url": None}]}}, id="url_not_a_string"),
+        pytest.param({"web": {"results": [{"title": 42, "url": "https://x"}]}}, id="title_is_int"),
     ],
 )
 @responses_lib.activate
@@ -169,3 +174,82 @@ def test_result_domain_extracted_from_url(url, expected_domain):
     )
     results = search("x", "test-key")
     assert results[0].domain == expected_domain
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        pytest.param("", "", id="empty_string"),
+        pytest.param("hello\tworld", "hello world", id="tab_becomes_space"),
+        pytest.param("a" * 150, "a" * 150, id="exactly_at_limit_unchanged"),
+        pytest.param("a" * 151, "a" * 149 + "\u2026", id="one_over_limit_ellipsized"),
+        pytest.param("\x00\x01\x1f\x7f", "", id="all_control_chars_dropped_yields_empty"),
+    ],
+)
+def test_sanitize_title(raw, expected):
+    """Direct unit tests for _sanitize_title covering edge cases not easily
+    exercised through search() without a mocked HTTP response: empty input,
+    tab-to-space conversion, the exact-150-char boundary (must pass through
+    unchanged), one character over the limit, and all-control-char input.
+    """
+    assert _sanitize_title(raw) == expected
+
+
+@responses_lib.activate
+def test_title_strips_crlf_injection():
+    """A title with embedded CRLF must not survive to putserv — IRC delimits
+    messages with CRLF, so a newline would terminate Pompone's PRIVMSG and
+    let an indexed page inject an IRC command.
+    """
+    responses_lib.add(
+        responses_lib.GET,
+        _BRAVE_URL,
+        json={"web": {"results": [{"title": "evil\rint\njection", "url": "https://x"}]}},
+        status=200,
+    )
+    results = search("x", "test-key")
+    assert "\r" not in results[0].title
+    assert "\n" not in results[0].title
+
+
+@responses_lib.activate
+def test_title_strips_mirc_control_codes():
+    """mIRC formatting codes (bold, color, reset) would break the
+    formatter's own bold pairing and could inject colors — strip them.
+    """
+    responses_lib.add(
+        responses_lib.GET,
+        _BRAVE_URL,
+        json={"web": {"results": [{"title": "\x02bold\x0freset\x03", "url": "https://x"}]}},
+        status=200,
+    )
+    results = search("x", "test-key")
+    assert results[0].title == "boldreset"
+
+
+@responses_lib.activate
+def test_title_collapses_whitespace_from_stripped_newlines():
+    """Newlines become spaces, so adjacent whitespace must collapse — the
+    result should read as a single joined line, not have double-spaces.
+    """
+    responses_lib.add(
+        responses_lib.GET,
+        _BRAVE_URL,
+        json={"web": {"results": [{"title": "line one\r\n   line two", "url": "https://x"}]}},
+        status=200,
+    )
+    results = search("x", "test-key")
+    assert results[0].title == "line one line two"
+
+
+@responses_lib.activate
+def test_long_title_ellipsized():
+    responses_lib.add(
+        responses_lib.GET,
+        _BRAVE_URL,
+        json={"web": {"results": [{"title": "a" * 300, "url": "https://x"}]}},
+        status=200,
+    )
+    results = search("x", "test-key")
+    assert len(results[0].title) == 150
+    assert results[0].title == "a" * 149 + "…"
