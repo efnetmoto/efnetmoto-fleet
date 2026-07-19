@@ -49,3 +49,25 @@
 #         limits:
 #           cpus: '0.25'
 #           memory: 256M
+
+# Example 5: Expose url-shortener redirect endpoint via Traefik
+# The base compose file publishes no ports and carries no proxy labels.
+# The public redirect endpoint (go.efnetmoto.com) is wired up here so the
+# create API stays reachable only on pompone-net while the read path is
+# public. url-shortener joins both pompone-net (for the create API from
+# Pompone) and the traefik-proxy network (for inbound public traffic).
+# services:
+#   url-shortener:
+#     networks:
+#       - pompone-net
+#       - traefik-proxy
+#     labels:
+#       - "traefik.enable=true"
+#       - "traefik.http.routers.go-efnetmoto.rule=Host(`go.efnetmoto.com`)"
+#       - "traefik.http.routers.go-efnetmoto.entrypoints=websecure"
+#       - "traefik.http.routers.go-efnetmoto.tls.certresolver=letsencrypt"
+#       - "traefik.http.services.go-efnetmoto.loadbalancer.server.port=8080"
+#
+# networks:
+#   traefik-proxy:
+#     external: true

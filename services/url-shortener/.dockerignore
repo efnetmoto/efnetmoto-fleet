@@ -1,0 +1,18 @@
+# Git (if the build context is ever the repo root)
+.git
+
+# OS
+.DS_Store
+
+# Locally compiled binary (avoid shipping a stale host build into the image)
+url-shortener
+*.exe
+
+# Tests never compiled by `go build .` — excluding them shrinks the
+# build context and keeps a broken test from being cached into a layer.
+**/*_test.go
+tests/
+
+# Editor
+.vscode
+.idea

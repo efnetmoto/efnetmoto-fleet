@@ -147,6 +147,44 @@ services:
     depends_on:
       - pisg
 
+  url-shortener:
+    build:
+      context: ../../services/url-shortener
+      dockerfile: Dockerfile
+    container_name: pompone-url-shortener
+    restart: unless-stopped
+
+    # Run as the host user (like pisg) so the bind-mounted SQLite DB is
+    # writable without root or a chown entrypoint.
+    user: "${UID}:${GID}"
+
+    volumes:
+      # Persistent SQLite database (bind-mounted for backup coverage)
+      - ./url-shortener-data:/data
+
+    environment:
+      - PORT=8080
+      - DATABASE_PATH=/data/shortener.db
+      - PUBLIC_BASE_URL=https://go.efnetmoto.com
+      - API_KEY=${SHORTENER_API_KEY}
+
+    cap_drop:
+      - ALL
+
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.10
+
+    security_opt:
+      - no-new-privileges:true
+
+    # No ports published to the host — the create API is reachable only
+    # on pompone-net (from Pompone). The public redirect endpoint is
+    # exposed via a reverse proxy configured in docker-compose.override.yml
+    # (see docker-compose.override.yml.example, Example 5).
+    networks:
+      - pompone-net
+
 networks:
   pompone-net:
     driver: bridge

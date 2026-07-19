@@ -152,8 +152,14 @@ Services are reusable Docker containers that bots can use.
 2. Create `Dockerfile`:
    - Base on Alpine when possible (check other images for version)
    - Document environment variables
-   - Do NOT use a `USER` directive — identity is set at runtime via `EGGDROP_UID`/`EGGDROP_GID`
-     and a `su-exec` privilege drop in the entrypoint
+   - Do NOT use a `USER` directive — identity is set at runtime, not baked into the image. The fleet uses two patterns:
+     - **Compose `user:`** (`pisg`, `nginx`, `url-shortener`): set
+       `user: "${UID}:${GID}"` in `docker-compose.yml`; the container runs as
+       the host user directly. Simplest for services that bind-mount a host
+       directory they must write to.
+     - **Entrypoint privilege drop** (`eggdrop`): the entrypoint starts as
+       root, `chown`s its volumes, then re-execs as `EGGDROP_UID`/`EGGDROP_GID`
+       via `su-exec` (requires `CAP_CHOWN`, `CAP_SETUID`, `CAP_SETGID`).
    - Use multi-stage builds to separate build-deps from runtime deps
 
 3. Create `entrypoint.sh` if needed:

@@ -66,6 +66,19 @@
         remote_src: true
       when: pisg_config_stat.stat.exists
 
+    - name: Check if url-shortener data exists in backup
+      ansible.builtin.stat:
+        path: "{{ staging_dir }}/url-shortener-data"
+      register: url_shortener_data_stat
+
+    - name: Restore url-shortener data files
+      ansible.builtin.copy:
+        src: "{{ staging_dir.path }}/url-shortener-data/"
+        dest: "{{ bot_dir }}/url-shortener-data/"
+        mode: preserve
+        remote_src: true
+      when: url_shortener_data_stat.stat.exists
+
     # Phase 3: Validate & finalize restore
     - name: Validate HTML restore
       ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
@@ -87,6 +100,14 @@
         staging_path: "{{ staging_dir.path }}/pisg-config"
         restore_path: "{{ bot_dir }}/pisg-config"
         artifact_name: "pisg configuration"
+
+    - name: Validate url-shortener data restore
+      ansible.builtin.include_tasks: ansible/tasks/restore-validate-mirror.yml
+      vars:
+        staging_path: "{{ staging_dir.path }}/url-shortener-data"
+        restore_path: "{{ bot_dir }}/url-shortener-data"
+        artifact_name: "url-shortener data"
+      when: url_shortener_data_stat.stat.exists
 
     - name: Finalize restore
       ansible.builtin.include_tasks: ansible/tasks/restore-finalize.yml
