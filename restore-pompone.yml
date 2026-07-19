@@ -42,7 +42,7 @@
 
     - name: Check if pisg-cache exists in backup
       ansible.builtin.stat:
-        path: "{{ staging_dir }}/pisg-cache"
+        path: "{{ staging_dir.path }}/pisg-cache"
       register: pisg_cache_stat
 
     - name: Restore pisg-cache files
@@ -55,7 +55,7 @@
 
     - name: Check if pisg-config exists in backup
       ansible.builtin.stat:
-        path: "{{ staging_dir }}/pisg-config"
+        path: "{{ staging_dir.path }}/pisg-config"
       register: pisg_config_stat
 
     - name: Restore pisg config customizations
@@ -68,7 +68,7 @@
 
     - name: Check if url-shortener data exists in backup
       ansible.builtin.stat:
-        path: "{{ staging_dir }}/url-shortener-data"
+        path: "{{ staging_dir.path }}/url-shortener-data"
       register: url_shortener_data_stat
 
     - name: Restore url-shortener data files
