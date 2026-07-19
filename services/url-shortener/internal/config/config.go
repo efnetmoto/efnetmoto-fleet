@@ -64,12 +64,12 @@ func loadPort(s string) (int, error) {
 	if s == "" {
 		return defaultPort, nil
 	}
-	p, err := strconv.Atoi(s)
+	port, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, fmt.Errorf("PORT %q: must be an integer", s)
 	}
-	if p < 1 || p > 65535 {
-		return 0, fmt.Errorf("PORT %d: must be between 1 and 65535", p)
+	if port < 1 || port > 65535 {
+		return 0, fmt.Errorf("PORT %d: must be between 1 and 65535", port)
 	}
-	return p, nil
+	return port, nil
 }
