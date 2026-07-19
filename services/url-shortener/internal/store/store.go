@@ -75,19 +75,29 @@ type Store struct {
 	db    *sql.DB
 	idLen int
 	// generate produces a candidate short ID. It defaults to
-	// shortid.Generate and is overridable from within the package (by
-	// tests, via direct field assignment) to force deterministic
-	// collision behavior. Keeping it unexported avoids leaking a test
-	// seam into the public API.
+	// shortid.Generate and is overridable via the WithGenerator option
+	// (primarily by tests, to force deterministic collision behavior).
 	generate func(int) (string, error)
 }
 
 type Option func(*Store)
 
 // WithIDLength overrides the default short ID length (7). Useful for
-// tests that need a small ID space to exercise collision behavior.
+// tests that need a small ID space to exercise collision behavior. This
+// constrains the *real* generator's space (probabilistic collisions);
+// WithGenerator instead injects a fake generator for deterministic
+// collision/retry behavior — the two are complementary, not redundant.
 func WithIDLength(n int) Option {
 	return func(s *Store) { s.idLen = n }
+}
+
+// WithGenerator overrides the short-ID generator. It defaults to
+// shortid.Generate; tests pass a deterministic generator to force
+// collision/retry behavior without depending on randomness. This is the
+// public seam for varying ID generation — construction and test paths
+// share it, so there is no divergence between them.
+func WithGenerator(fn func(int) (string, error)) Option {
+	return func(s *Store) { s.generate = fn }
 }
 
 // Open creates and initializes a Store backed by a SQLite database file
