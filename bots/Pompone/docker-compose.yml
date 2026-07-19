@@ -29,10 +29,17 @@ services:
       # Shared TCL scripts (from repo root)
       - ../../shared/tcl-scripts:/eggdrop/scripts-shared
 
+      # Shared Python scripts (from repo root)
+      - ../../shared/python-scripts:/eggdrop/scripts-python-shared
+
     environment:
       - TZ=${TZ}
       - EGGDROP_UID=${UID}
       - EGGDROP_GID=${GID}
+      # Search bot (searchbot.py) reads these via os.environ at pysource load
+      - BRAVE_API_KEY=${BRAVE_API_KEY}
+      - SHORTENER_API_URL=${SHORTENER_API_URL}
+      - SHORTENER_API_KEY=${SHORTENER_API_KEY}
 
     cap_drop:
       - ALL
