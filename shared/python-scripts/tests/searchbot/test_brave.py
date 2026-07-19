@@ -198,7 +198,7 @@ def test_sanitize_title(raw, expected):
 @responses_lib.activate
 def test_title_strips_crlf_injection():
     """A title with embedded CRLF must not survive to putserv — IRC delimits
-    messages with CRLF, so a newline would terminate Pompone's PRIVMSG and
+    messages with CRLF, so a newline would terminate the bot's PRIVMSG and
     let an indexed page inject an IRC command.
     """
     responses_lib.add(

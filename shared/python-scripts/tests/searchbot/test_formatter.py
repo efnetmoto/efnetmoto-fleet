@@ -14,14 +14,14 @@ def test_two_results():
         _r("The Rust Book", "https://doc.rust-lang.org/book/", "doc.rust-lang.org"),
     ]
     out = format_results(
-        results, ["https://go.efnetmoto.com/a7K2", "https://go.efnetmoto.com/b91Q"]
+        results, ["https://short.example.com/a7K2", "https://short.example.com/b91Q"]
     )
     assert out == [
         (
             f"[rust-lang.org] {_BOLD}Rust Programming Language{_BOLD}"
-            " → https://go.efnetmoto.com/a7K2"
+            " → https://short.example.com/a7K2"
         ),
-        (f"[doc.rust-lang.org] {_BOLD}The Rust Book{_BOLD} → https://go.efnetmoto.com/b91Q"),
+        (f"[doc.rust-lang.org] {_BOLD}The Rust Book{_BOLD} → https://short.example.com/b91Q"),
     ]
 
 
@@ -56,6 +56,6 @@ def test_domain_taken_from_result_not_display_url():
     """
     out = format_results(
         [_r("T", "https://real.example/page", "real.example")],
-        ["https://go.efnetmoto.com/a7K2"],
+        ["https://short.example.com/a7K2"],
     )
-    assert out == [f"[real.example] {_BOLD}T{_BOLD} → https://go.efnetmoto.com/a7K2"]
+    assert out == [f"[real.example] {_BOLD}T{_BOLD} → https://short.example.com/a7K2"]

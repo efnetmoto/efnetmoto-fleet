@@ -23,7 +23,7 @@ class SearchCache:
 
     Synchronous-only: eggdrop pub binds run on the main thread, so no locking
     is needed around the internal dict. State is lost on script reload, which
-    matches the fleet's rehash-safety pattern.
+    matches eggdrop's rehash cycle.
 
     Bounding: TTL is enforced lazily on read; an optional ``max_entries`` cap
     prevents unbounded growth under a flood of unique queries by evicting the
