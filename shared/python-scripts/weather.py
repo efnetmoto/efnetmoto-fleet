@@ -126,6 +126,7 @@ def _do_fetch_weather(
         if not registered:
             putserv(
                 f"PRIVMSG {reply_target} :{prefix}{target_user} is not registered with the bot."
+                f" See https://efnetmoto.com/docs/user/weather/#getting-registered"
             )
             return
         pref = prefs.get_pref(target_user)
@@ -140,7 +141,9 @@ def _do_fetch_weather(
         if handle == "*":
             putserv(
                 f"PRIVMSG {reply_target} :{prefix}You must be registered with the bot"
-                f" to use a saved default. Try .wz <location>."
+                f" to use a saved default. Ask an op to add you:"
+                f" https://efnetmoto.com/docs/user/weather/#getting-registered"
+                f"  (for now, .wz <location> works without an account)"
             )
             return
         pref = prefs.get_pref(handle)
@@ -261,7 +264,9 @@ def _handle_wzset_impl(
         if handle == "*":
             putserv(
                 f"PRIVMSG {reply_target} :{prefix}You must be a registered bot user"
-                f" to save preferences. Try .wzhelp for usage."
+                f" to save preferences. Ask an op to add you:"
+                f" https://efnetmoto.com/docs/user/weather/#getting-registered"
+                f"  (see .wzhelp for command usage)"
             )
             return
 
@@ -370,6 +375,7 @@ HELP_LINES = [
     "  .w/.wz <32-char station slug>              — query by station slug",
     "  .w/.wz <CALLSIGN with SSID 13>             - query by CWOP Callsign"
     "  .wzset <URL or slug>                       — save as your default",
+    "Full docs: https://efnetmoto.com/docs/user/weather/",
 ]
 
 

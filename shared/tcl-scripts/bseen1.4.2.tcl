@@ -868,18 +868,21 @@ proc bs_help_msg_seen {nick uhost hand args} {
     puthelp "notice $nick :   Queries can be in the following formats:"
     puthelp "notice $nick :     'regular':  seen lamer; seen lamest "
     puthelp "notice $nick :     'masked':   seen *l?mer*; seen *.lame.com; seen *.edu #mychan"
+    puthelp "notice $nick :  Full docs: https://efnetmoto.com/docs/user/bseen/"
     return 0
 }
 proc bs_help_msg_chanstats {nick uhost hand args} {
     global bs; if {[bs_flood $nick $uhost]} {return 0}
     puthelp "notice $nick :###  chanstats <chan>          $bs(version)"
     puthelp "notice $nick :   Returns the usage statistics of #chan in the seen database."
+    puthelp "notice $nick :  Full docs: https://efnetmoto.com/docs/user/bseen/"
     return 0
 }
 proc bs_help_msg_seenstats {nick uhost hand args} {
     global bs; if {[bs_flood $nick $uhost]} {return 0}
     puthelp "notice $nick :###  seenstats          $bs(version)"
     puthelp "notice $nick :   Returns the status of the bseen database."
+    puthelp "notice $nick :  Full docs: https://efnetmoto.com/docs/user/bseen/"
     return 0
 }
 bind dcc -|- seenversion bs_version
