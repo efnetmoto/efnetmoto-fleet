@@ -335,17 +335,19 @@ proc quote_help {nick host handle channel text} {
         as our options have recently changed."
     putserv "PRIVMSG $nick :Commands for the QuoteEngine script: <req'd> \[optional\]"
     putserv "PRIVMSG $nick :  !addquote <title> <quote text> -\
-        adds a quote to the database. Ops only."
-    putserv "PRIVMSG $nick :  !delquote <title> - deletes a quote. Ops only."
+        adds a quote to the database. Friends (+f) only."
+    putserv "PRIVMSG $nick :  !delquote <title> - deletes a quote. Ops (+o) only."
     putserv "PRIVMSG $nick :  !randquote \[search text\] - fetches a random quote"
+    putserv "PRIVMSG $nick :  !randauthor \[nick\] - fetches a random quote added by <nick>"
     putserv "PRIVMSG $nick :  !quote <title> - fetches the quote with <title>"
-    putserv "PRIVMSG $nick :  !quoteinfo <title> - gets info about a quote"
+    putserv "PRIVMSG $nick :  !quoteinfo <title> - who added a quote and when"
     putserv "PRIVMSG $nick :  !titlesearch <text> - finds all quote titles containing 'text'"
     putserv "PRIVMSG $nick :  !quotesearch <text> - finds all quotes containing 'text'"
-    putserv "PRIVMSG $nick :  !quotestats - get quote entry information"
+    putserv "PRIVMSG $nick :  !quotestats - total quotes, and how many you've added"
     putserv "PRIVMSG $nick :  !quotever - get the version of the script"
-    putserv "PRIVMSG $nick :  Some commands have synonyms and\
-        spoonerisms: !getquote !deletequote !searchtitle"
+    putserv "PRIVMSG $nick :  !quote and !getquote also work via /msg XeroKewl"
+    putserv "PRIVMSG $nick :  Synonyms: !getquote !quoteadd !deletequote\
+        !searchtitle !searchtitles !searchquotes !searchquote"
     putserv "PRIVMSG $nick :  Full docs: https://efnetmoto.com/docs/user/quotes/"
     putserv "PRIVMSG $nick :  (End of help)"
     return 0
