@@ -346,6 +346,7 @@ proc quote_help {nick host handle channel text} {
     putserv "PRIVMSG $nick :  !quotever - get the version of the script"
     putserv "PRIVMSG $nick :  Some commands have synonyms and\
         spoonerisms: !getquote !deletequote !searchtitle"
+    putserv "PRIVMSG $nick :  Full docs: https://efnetmoto.com/docs/user/quotes/"
     putserv "PRIVMSG $nick :  (End of help)"
     return 0
 }
