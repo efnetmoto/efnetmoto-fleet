@@ -1,0 +1,27 @@
+# Dependabot keeps the pinned GitHub Actions commit SHAs (see
+# .github/workflows/*.yml) up to date. Each week it bumps each SHA to the latest
+# release of the action and updates the trailing version comment (e.g. `# v4.4.0`).
+#
+# Updates are grouped into a single weekly PR to keep noise low; every PR still
+# goes through branch protection (1 required review on main), so a human reviews
+# each bump before it lands.
+#
+# Note: SHA pins that carry a non-version comment (e.g. `# pin: main @ <date>`)
+# are intentionally frozen — Dependabot will not bump them. Bump those manually
+# when you deliberately want to move to a newer branch tip.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
