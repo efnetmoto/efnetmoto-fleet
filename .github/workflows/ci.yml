@@ -121,6 +121,7 @@ jobs:
 
   secrets-scan:
     name: Secrets Scan
+    if: github.actor != 'dependabot[bot]'  # Actions secrets (incl. GITLEAKS_LICENSE) are withheld on Dependabot PRs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
