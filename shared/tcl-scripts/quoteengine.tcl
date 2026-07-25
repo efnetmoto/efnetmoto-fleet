@@ -336,7 +336,8 @@ proc quote_help {nick host handle channel text} {
     putserv "PRIVMSG $nick :Commands for the QuoteEngine script: <req'd> \[optional\]"
     putserv "PRIVMSG $nick :  !addquote <title> <quote text> -\
         adds a quote to the database. Friends (+f) only."
-    putserv "PRIVMSG $nick :  !delquote <title> - deletes a quote. Ops (+o) only."
+    putserv "PRIVMSG $nick :  !delquote <title> - deletes a quote. Ops (+o):"
+    putserv "PRIVMSG $nick :    your own; botmasters (+m) any."
     putserv "PRIVMSG $nick :  !randquote \[search text\] - fetches a random quote"
     putserv "PRIVMSG $nick :  !randauthor \[nick\] - fetches a random quote added by <nick>"
     putserv "PRIVMSG $nick :  !quote <title> - fetches the quote with <title>"
