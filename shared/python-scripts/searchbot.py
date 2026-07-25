@@ -110,7 +110,10 @@ def _handle_search_impl(nick: str, text: str, reply_target: str, prefix: str) ->
     try:
         query = text.strip()
         if not query:
-            putserv(f"PRIVMSG {reply_target} :{prefix}Usage: {_SEARCH_TRIGGER} <search query>")
+            putserv(
+                f"PRIVMSG {reply_target} :{prefix}Usage: {_SEARCH_TRIGGER} <search query>"
+                f"  (docs: https://efnetmoto.com/docs/user/search/)"
+            )
             return
         if len(query) > _MAX_QUERY_LENGTH:
             putserv(

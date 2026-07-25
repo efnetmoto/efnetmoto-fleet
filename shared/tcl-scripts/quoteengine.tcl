@@ -348,9 +348,6 @@ proc quote_help {nick host handle channel text} {
     putserv "PRIVMSG $nick :  !quotesearch <text> - finds all quotes containing 'text'"
     putserv "PRIVMSG $nick :  !quotestats - total quotes, and how many you've added"
     putserv "PRIVMSG $nick :  !quotever - get the version of the script"
-    putserv "PRIVMSG $nick :  quote and getquote via /msg XeroKewl (!quote/!getquote also work)"
-    putserv "PRIVMSG $nick :  Synonyms: !getquote !quoteadd !deletequote\
-        !searchtitle !searchtitles !searchquotes !searchquote"
     putserv "PRIVMSG $nick :  Full docs: https://efnetmoto.com/docs/user/quotes/"
     putserv "PRIVMSG $nick :  (End of help)"
     return 0

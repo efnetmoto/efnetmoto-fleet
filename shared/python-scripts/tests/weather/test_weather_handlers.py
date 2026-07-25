@@ -66,7 +66,7 @@ def test_wzset_unregistered_user_blocked(putserv_mock):
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
     assert "registered bot user" in msg
-    assert ".wzhelp" in msg
+    assert "docs/user/weather/#getting-registered" in msg
 
 
 def test_wzset_flags_only_unregistered_user_blocked(putserv_mock):
@@ -85,7 +85,7 @@ def test_wz_no_args_unregistered_user_blocked(putserv_mock):
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
     assert "registered with the bot" in msg
-    assert ".wz <location>" in msg
+    assert "docs/user/weather/#getting-registered" in msg
 
 
 def test_wz_with_location_unregistered_user_allowed(putserv_mock):

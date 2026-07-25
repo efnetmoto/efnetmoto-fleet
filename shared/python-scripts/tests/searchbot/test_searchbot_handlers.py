@@ -74,7 +74,9 @@ def _sent_messages(putserv_mock):
 def test_empty_query_replies_usage(putserv_mock):
     sb.handle_search("alice", "h", "hand", "#test", "")
     putserv_mock.assert_called_once()
-    assert putserv_mock.call_args[0][0] == "PRIVMSG #test :alice: Usage: !g <search query>"
+    msg = putserv_mock.call_args[0][0]
+    assert msg.startswith("PRIVMSG #test :alice: Usage: !g <search query>")
+    assert "https://efnetmoto.com/docs/user/search/" in msg
 
 
 def test_whitespace_only_query_replies_usage(putserv_mock):
