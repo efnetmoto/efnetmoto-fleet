@@ -411,4 +411,9 @@ WZ_BINDS = [
     bind("msg", "*", ".wz", handle_wz_msg),
     bind("msg", "*", ".wzset", handle_wzset_msg),
     bind("msg", "*", ".wzhelp", handle_wzhelp_msg),
+    # Canonical msg forms: no trigger char, per eggdrop convention.
+    bind("msg", "*", "w", handle_wz_msg),
+    bind("msg", "*", "wz", handle_wz_msg),
+    bind("msg", "*", "wzset", handle_wzset_msg),
+    bind("msg", "*", "wzhelp", handle_wzhelp_msg),
 ]
