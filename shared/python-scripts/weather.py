@@ -143,7 +143,6 @@ def _do_fetch_weather(
                 f"PRIVMSG {reply_target} :{prefix}You must be registered with the bot"
                 f" to use a saved default. Ask an op to add you:"
                 f" https://efnetmoto.com/docs/user/weather/#getting-registered"
-                f"  (for now, .wz <location> works without an account)"
             )
             return
         pref = prefs.get_pref(handle)
@@ -266,7 +265,6 @@ def _handle_wzset_impl(
                 f"PRIVMSG {reply_target} :{prefix}You must be a registered bot user"
                 f" to save preferences. Ask an op to add you:"
                 f" https://efnetmoto.com/docs/user/weather/#getting-registered"
-                f"  (see .wzhelp for command usage)"
             )
             return
 
@@ -363,18 +361,8 @@ HELP_LINES = [
     "  .w/.wz --user <nick>                                — use another user's saved default",
     "  .wzset [--metar] [--metric|--imperial] <location>  — save a default location",
     "  .wzset --metric|--imperial                         — update saved units only",
-    "  .wzhelp                                             — this message",
-    "Location formats: ZIP (94025), City/State (San Mateo, CA), IATA (SFO)",
-    "--metar    : raw aviation weather; requires an ICAO code (e.g. .wz --metar KSFO)",
-    "Note: ICAO codes (KSFO) only work with --metar. For general weather use IATA (SFO).",
-    "--metric   : show metric first, imperial second (default)",
-    "--imperial : show imperial first, metric second",
-    "Use --metric or --imperial with .wzset to change your saved default",
-    "Personal weather stations (Ambient Weather Network):",
-    "  .w/.wz <ambientweather.net/dashboard/URL>  — query by dashboard URL",
-    "  .w/.wz <32-char station slug>              — query by station slug",
-    "  .w/.wz <CALLSIGN with SSID 13>             - query by CWOP Callsign"
-    "  .wzset <URL or slug>                       — save as your default",
+    "Location formats: ZIP, City/State, IATA (SFO); ICAO (KSFO) only with --metar;",
+    "  PWS: ambientweather.net URL, 32-char slug, or CWOP CALLSIGN-13.",
     "Full docs: https://efnetmoto.com/docs/user/weather/",
 ]
 
