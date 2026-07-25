@@ -24,6 +24,8 @@ bind pub "-" !quote quote_fetch
 bind pub "-" !getquote quote_fetch
 bind msg "-" !quote quote_fetch_msg
 bind msg "-" !getquote quote_fetch_msg
+bind msg "-" quote quote_fetch_msg
+bind msg "-" getquote quote_fetch_msg
 bind pub "-" !titlesearch quote_search
 bind pub "-" !searchtitle quote_search
 bind pub "-" !searchtitles quote_search
@@ -346,7 +348,7 @@ proc quote_help {nick host handle channel text} {
     putserv "PRIVMSG $nick :  !quotesearch <text> - finds all quotes containing 'text'"
     putserv "PRIVMSG $nick :  !quotestats - total quotes, and how many you've added"
     putserv "PRIVMSG $nick :  !quotever - get the version of the script"
-    putserv "PRIVMSG $nick :  !quote and !getquote also work via /msg XeroKewl"
+    putserv "PRIVMSG $nick :  quote and getquote via /msg XeroKewl (!quote/!getquote also work)"
     putserv "PRIVMSG $nick :  Synonyms: !getquote !quoteadd !deletequote\
         !searchtitle !searchtitles !searchquotes !searchquote"
     putserv "PRIVMSG $nick :  Full docs: https://efnetmoto.com/docs/user/quotes/"

@@ -400,6 +400,10 @@ def test_wzhelp_msg_no_channel_echo(putserv_mock):
         ("msg", ".wz", "handle_wz_msg"),
         ("msg", ".wzset", "handle_wzset_msg"),
         ("msg", ".wzhelp", "handle_wzhelp_msg"),
+        ("msg", "w", "handle_wz_msg"),
+        ("msg", "wz", "handle_wz_msg"),
+        ("msg", "wzset", "handle_wzset_msg"),
+        ("msg", "wzhelp", "handle_wzhelp_msg"),
     ],
 )
 def test_bind_registered(kind, command, handler_name):
