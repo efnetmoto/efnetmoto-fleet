@@ -1,0 +1,87 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+# hostmask procs are pure: no eggdrop calls, no stubs needed.
+
+tcltest::test parse-full {nick!user@host -> nick user host} -body {
+    ::joingate::hostmask::parse "lurker!user@1.2.3.4"
+} -result {nick lurker user user host 1.2.3.4}
+
+tcltest::test parse-uhost {user@host form -> empty nick} -body {
+    ::joingate::hostmask::parse "user@1.2.3.4"
+} -result {nick {} user user host 1.2.3.4}
+
+tcltest::test parse-host-only {bare host -> empty user} -body {
+    ::joingate::hostmask::parse "1.2.3.4"
+} -result {nick {} user {} host 1.2.3.4}
+
+tcltest::test host-of {user@host -> host} -body {
+    ::joingate::hostmask::host-of "user@1.2.3.4"
+} -result "1.2.3.4"
+
+tcltest::test ban-mask {uhost -> *!*@host} -body {
+    ::joingate::hostmask::ban-mask "user@1.2.3.4"
+} -result "*!*@1.2.3.4"
+
+tcltest::test is-ipv4-yes {dotted quad is IPv4} -body {
+    ::joingate::hostmask::is-ipv4 "1.2.3.4"
+} -result 1
+
+tcltest::test is-ipv4-octet-range {octet > 255 is not IPv4} -body {
+    ::joingate::hostmask::is-ipv4 "1.2.3.256"
+} -result 0
+
+tcltest::test is-ipv4-three-parts {three octets is not IPv4} -body {
+    ::joingate::hostmask::is-ipv4 "1.2.3"
+} -result 0
+
+tcltest::test is-ipv4-non-numeric {letters are not IPv4} -body {
+    ::joingate::hostmask::is-ipv4 "foo.bar.baz.1"
+} -result 0
+
+tcltest::test is-ipv6-plain {::1 is IPv6} -body {
+    ::joingate::hostmask::is-ipv6 "::1"
+} -result 1
+
+tcltest::test is-ipv6-v4mapped {::ffff:1.2.3.4 is IPv6} -body {
+    ::joingate::hostmask::is-ipv6 "::ffff:1.2.3.4"
+} -result 1
+
+tcltest::test is-ipv6-not-v4 {1.2.3.4 is not IPv6} -body {
+    ::joingate::hostmask::is-ipv6 "1.2.3.4"
+} -result 0
+
+tcltest::test is-ip-v4 {is-ip detects IPv4} -body {
+    ::joingate::hostmask::is-ip "1.2.3.4"
+} -result 1
+
+tcltest::test is-ip-v6 {is-ip detects IPv6} -body {
+    ::joingate::hostmask::is-ip "2001:db8::1"
+} -result 1
+
+tcltest::test is-ip-hostname {is-ip rejects hostname} -body {
+    ::joingate::hostmask::is-ip "foo.example.com"
+} -result 0
+
+tcltest::test reverse-ipv4 {1.2.3.4 -> 4.3.2.1} -body {
+    ::joingate::hostmask::reverse-ipv4 "1.2.3.4"
+} -result "4.3.2.1"
+
+tcltest::test reverse-ipv6-compressed {2001:db8::1 -> nibble reverse} -body {
+    ::joingate::hostmask::reverse-ipv6 "2001:db8::1"
+} -result "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2"
+
+tcltest::test reverse-ipv6-full {full form reverses identically} -body {
+    ::joingate::hostmask::reverse-ipv6 "2001:0db8:0000:0000:0000:0000:0000:0001"
+} -result "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2"
+
+tcltest::test reverse-ip-v4 {dispatch to v4} -body {
+    ::joingate::hostmask::reverse-ip "1.2.3.4"
+} -result "4.3.2.1"
+
+tcltest::test reverse-ip-nonip {non-IP returns empty} -body {
+    ::joingate::hostmask::reverse-ip "foo.example.com"
+} -result ""
+
+tcltest::cleanupTests

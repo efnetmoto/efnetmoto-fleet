@@ -1,0 +1,98 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+# config procs are pure over ::env; no eggdrop stubs needed. We drive ::env
+# directly and assert config::load's output and error behavior.
+
+tcltest::test env-required-missing {missing required var errors} -body {
+    unset ::env(JOINGATE_CHANNEL)
+    ::joingate::config::env-required JOINGATE_CHANNEL
+} -returnCodes 1 -match glob -result "joingate: JOINGATE_CHANNEL*"
+
+tcltest::test env-required-present {present required var returns value} -setup {
+    set ::env(JOINGATE_CHANNEL) "#test"
+} -body {
+    ::joingate::config::env-required JOINGATE_CHANNEL
+} -result "#test"
+
+tcltest::test env-int-default {unset int uses default} -setup {
+    catch { unset ::env(JOINGATE_FOO_INT) }
+} -body {
+    ::joingate::config::env-int JOINGATE_FOO_INT 42
+} -result 42
+
+tcltest::test env-int-bad {non-integer errors} -setup {
+    set ::env(JOINGATE_FOO_INT) "abc"
+} -body {
+    ::joingate::config::env-int JOINGATE_FOO_INT 42
+} -returnCodes 1 -match glob -result "joingate: JOINGATE_FOO_INT must be an integer*"
+
+tcltest::test env-bool-variants {bool accepts common forms} -body {
+    set results [list]
+    foreach v {1 yes true on 0 no false off} {
+        set ::env(JOINGATE_FOO_BOOL) $v
+        lappend results [::joingate::config::env-bool JOINGATE_FOO_BOOL 1]
+    }
+    return $results
+} -result {1 1 1 1 0 0 0 0}
+
+tcltest::test env-bool-default {unset bool uses default} -body {
+    unset ::env(JOINGATE_FOO_BOOL)
+    ::joingate::config::env-bool JOINGATE_FOO_BOOL 0
+} -result 0
+
+tcltest::test env-list-split {comma list parses trimmed, drops empties} -setup {
+    set ::env(JOINGATE_FOO_LIST) " a ,, b ,c"
+} -body {
+    ::joingate::config::env-list JOINGATE_FOO_LIST "x"
+} -result {a b c}
+
+tcltest::test env-list-default {unset list uses default} -body {
+    unset ::env(JOINGATE_FOO_LIST)
+    ::joingate::config::env-list JOINGATE_FOO_LIST "efnetrbl.org,barracudacentral.org"
+} -result {efnetrbl.org barracudacentral.org}
+
+tcltest::test load-only-required {only required -> defaults applied} -setup {
+    set ::env(JOINGATE_CHANNEL) "#motorcycles"
+    foreach v {JOINGATE_RBL_PROVIDERS JOINGATE_SOAK_CLEAN_SECONDS \
+               JOINGATE_SOAK_RBL_HIT_SECONDS JOINGATE_OP_RESPONSE_WINDOW_SECONDS \
+               JOINGATE_RBL_LOOKUP_TIMEOUT_SECONDS JOINGATE_ENABLED \
+               JOINGATE_WALLCHOP_TEMPLATE} {
+        catch { unset ::env($v) }
+    }
+} -body {
+    set cfg [::joingate::config::load]
+    list [dict get $cfg channel] [dict get $cfg rbl_providers] \
+        [dict get $cfg soak_clean] [dict get $cfg soak_rbl] \
+        [dict get $cfg op_window] [dict get $cfg rbl_timeout] \
+        [dict get $cfg enabled]
+} -result [list "#motorcycles" {efnetrbl.org} 30 300 300 3.0 1]
+
+tcltest::test load-full {all env vars honored} -setup {
+    set ::env(JOINGATE_CHANNEL) "#test"
+    set ::env(JOINGATE_RBL_PROVIDERS) "efnetrbl.org,barracudacentral.org"
+    set ::env(JOINGATE_SOAK_CLEAN_SECONDS) 20
+    set ::env(JOINGATE_SOAK_RBL_HIT_SECONDS) 600
+    set ::env(JOINGATE_OP_RESPONSE_WINDOW_SECONDS) 120
+    set ::env(JOINGATE_RBL_LOOKUP_TIMEOUT_SECONDS) 2.5
+    set ::env(JOINGATE_ENABLED) 0
+    set ::env(JOINGATE_WALLCHOP_TEMPLATE) "ALERT %nick%"
+} -body {
+    set cfg [::joingate::config::load]
+    list [dict get $cfg soak_clean] [dict get $cfg soak_rbl] \
+        [dict get $cfg op_window] [dict get $cfg rbl_timeout] \
+        [dict get $cfg enabled] [dict get $cfg wallchop_tpl]
+} -result [list 20 600 120 2.5 0 "ALERT %nick%"]
+
+tcltest::test load-default-wallchop {default template has all tokens} -body {
+    set ::env(JOINGATE_CHANNEL) "#motorcycles"
+    catch { unset ::env(JOINGATE_WALLCHOP_TEMPLATE) }
+    set cfg [::joingate::config::load]
+    set tpl [dict get $cfg wallchop_tpl]
+    list [string match "*%hostmask%*" $tpl] [string match "*%nick%*" $tpl] \
+        [string match "*%secs%*" $tpl] [string match "*%providers%*" $tpl] \
+        [string match "*%cmd%*" $tpl]
+} -result {1 1 1 1 1}
+
+tcltest::cleanupTests

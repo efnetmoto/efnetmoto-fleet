@@ -1,6 +1,7 @@
 # Shared TCL Scripts
 
-This directory contains 3rd-party TCL Scripts that are used by one or more bots.
+This directory contains TCL scripts (both third-party and project-authored)
+used by one or more bots.
 
 ## Script Index
 
@@ -9,6 +10,7 @@ This directory contains 3rd-party TCL Scripts that are used by one or more bots.
 | `bseen1.4.2.tcl` | Maintains database of seen and lastspoke for all channel users |
 | `quoteengine.tcl` | Quote storage and retrieval engine using SQLite3 |
 | `bots_broke.tcl` | Politely points people to GitHub issues when they tell eck0 the bot's broke. |
+| `joingate.tcl` | Join-gated voice moderation for a single configured channel; voices known users immediately and gates unknown joiners. Single-bot (Pompone only). |
 
 ## Architecture
 

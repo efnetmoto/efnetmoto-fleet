@@ -27,6 +27,14 @@ workflow from `ci.yml` because the Go toolchain is isolated to the
 
 **Steps:** gofmt check, `go vet`, `staticcheck`, `go test -race`.
 
+### TCL Tests (tcl-tests.yml)
+
+Runs on pull requests that touch `shared/tcl-scripts/**`. Runs the `tcltest`
+suite inside an `alpine:3.23` container so tests execute against Tcl 8.6.17
+(the version inside the eggdrop image), not dev's Tcl 9.x.
+
+**Steps:** `tclsh tests/all.tcl` (tcltest, single-process-per-file isolation).
+
 ## Linter Configurations
 
 - `.yamllint.yml` - YAML linting rules
@@ -60,6 +68,10 @@ markdownlint '**/*.md'
 # TCLint
 tclfmt --check .
 tclint .
+
+# TCL tests (joingate) — run against the runtime Tcl 8.6
+docker run --rm -v "$PWD/shared/tcl-scripts":/t -w /t alpine:3.23 \
+  sh -c 'apk add --no-cache tcl >/dev/null && tclsh tests/all.tcl'
 
 # Go tests + lint (url-shortener)
 cd services/url-shortener && go test -race ./... && gofmt -l . && go vet ./... && staticcheck ./...

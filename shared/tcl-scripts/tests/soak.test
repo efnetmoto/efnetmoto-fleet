@@ -1,0 +1,84 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+proc reset-all {} {
+    ::stubs::reset
+    set ::joingate::Timers [dict create]
+    set ::joingate::soak::Records [dict create]
+    set ::joingate::soak::KeyTimers [dict create]
+}
+
+tcltest::test soak-start {start creates record + timer} -setup {
+    reset-all
+} -body {
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob state soaking_clean] 30 {noop}
+    list [::joingate::soak::exists "user@1.2.3.4"] [llength [::stubs::live-timers]]
+} -result {1 1}
+
+tcltest::test soak-get {get returns the record} -setup {
+    reset-all
+} -body {
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob state soaking_clean] 30 {noop}
+    dict get [::joingate::soak::get "user@1.2.3.4"] nick
+} -result "bob"
+
+tcltest::test soak-get-missing {get missing key returns ""} -setup {
+    reset-all
+} -body {
+    ::joingate::soak::get "nobody@1.2.3.4"
+} -result ""
+
+tcltest::test soak-cancel {cancel drops record + timer} -setup {
+    reset-all
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob] 30 {noop}
+} -body {
+    ::joingate::soak::cancel "user@1.2.3.4"
+    list [::joingate::soak::exists "user@1.2.3.4"] [llength [::stubs::live-timers]]
+} -result {0 0}
+
+tcltest::test soak-clear {clear is an alias for cancel} -setup {
+    reset-all
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob] 30 {noop}
+} -body {
+    ::joingate::soak::clear "user@1.2.3.4"
+    list [::joingate::soak::exists "user@1.2.3.4"] [llength [::stubs::live-timers]]
+} -result {0 0}
+
+tcltest::test soak-rename {rename updates nick, keeps timer} -setup {
+    reset-all
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob] 30 {noop}
+} -body {
+    ::joingate::soak::rename "user@1.2.3.4" "bob2"
+    list [dict get [::joingate::soak::get "user@1.2.3.4"] nick] \
+        [llength [::stubs::live-timers]]
+} -result {bob2 1}
+
+tcltest::test soak-rename-missing {rename on missing key is a no-op} -setup {
+    reset-all
+} -body {
+    ::joingate::soak::rename "nobody@1.2.3.4" "bob2"
+    ::joingate::soak::exists "nobody@1.2.3.4"
+} -result 0
+
+tcltest::test soak-reschedule {reschedule kills old timer, sets new state + timer} -setup {
+    reset-all
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob state soaking_rbl] 300 {noop}
+} -body {
+    ::joingate::soak::reschedule "user@1.2.3.4" "awaiting_op" 300 {noop}
+    list [dict get [::joingate::soak::get "user@1.2.3.4"] state] \
+        [llength [::stubs::live-timers]]
+} -result {awaiting_op 1}
+
+tcltest::test soak-start-fires {firing the timer runs the queued command} -setup {
+    reset-all
+    set ::fired 0
+    ::joingate::soak::start "user@1.2.3.4" [dict create nick bob] 30 {
+        set ::fired 1
+    }
+} -body {
+    ::stubs::fire-next
+    return $::fired
+} -result 1
+
+tcltest::cleanupTests

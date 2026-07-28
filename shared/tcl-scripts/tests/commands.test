@@ -1,0 +1,157 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+proc reset-all {} {
+    ::stubs::reset
+    set ::joingate::Timers [dict create]
+    set ::joingate::soak::Records [dict create]
+    set ::joingate::soak::KeyTimers [dict create]
+    set ::joingate::RblPending [dict create]
+    set ::joingate::cfg [dict create channel "#motorcycles" enabled 1 \
+        soak_clean 30 soak_rbl 300 op_window 300 rbl_providers {efnetrbl.org} \
+        rbl_timeout 3.0 wallchop_tpl "TPL"]
+    namespace eval ::joingate::trust {
+        variable Blocked [list]
+        variable Allowed [list]
+    }
+}
+
+# True if a recorded stub call matches the glob. Keeps assertions short.
+proc has {pattern} {
+    return [expr {[lsearch -glob [::stubs::calls] $pattern] >= 0}]
+}
+
+# ---- cmd::parse (pure) ----
+
+tcltest::test parse-gatevoice {gatevoice nick} -body {
+    ::joingate::cmd::parse "gatevoice bob"
+} -result {op voice target bob}
+
+tcltest::test parse-gateblock {gateblock glob} -body {
+    ::joingate::cmd::parse "gateblock *!*@1.2.3.4"
+} -result {op block target *!*@1.2.3.4}
+
+tcltest::test parse-gateallow {gateallow glob} -body {
+    ::joingate::cmd::parse "gateallow *.example.com"
+} -result {op allow target *.example.com}
+
+tcltest::test parse-gatesync {gatesync takes no arg} -body {
+    ::joingate::cmd::parse "gatesync"
+} -result {op sync target {}}
+
+tcltest::test parse-gatevoice-noarg {voice without arg is empty} -body {
+    ::joingate::cmd::parse "gatevoice"
+} -result ""
+
+tcltest::test parse-unknown {unknown command is empty} -body {
+    ::joingate::cmd::parse "frobnicate now"
+} -result ""
+
+tcltest::test parse-case-insensitive {command is case-insensitive} -body {
+    ::joingate::cmd::parse "GATEVOICE bob"
+} -result {op voice target bob}
+
+tcltest::test parse-empty {empty input is empty} -body {
+    ::joingate::cmd::parse "   "
+} -result ""
+
+# ---- trust (pure glob matching) ----
+
+tcltest::test trust-block-match {blocked glob matches nocase} -setup {
+    reset-all
+    ::joingate::trust::block "*!*@bad.example.com"
+} -body {
+    ::joingate::trust::is-blocked "Lurker!user@BAD.example.com"
+} -result 1
+
+tcltest::test trust-block-nomatch {non-matching is not blocked} -setup {
+    reset-all
+    ::joingate::trust::block "*!*@bad.example.com"
+} -body {
+    ::joingate::trust::is-blocked "lurker!user@1.2.3.4"
+} -result 0
+
+tcltest::test trust-allow-match {allowed glob matches} -setup {
+    reset-all
+    ::joingate::trust::allow "*!*@good.example.com"
+} -body {
+    ::joingate::trust::is-allowed "bob!bob@good.example.com"
+} -result 1
+
+tcltest::test trust-block-dedup {blocklist dedupes} -setup {
+    reset-all
+} -body {
+    ::joingate::trust::block "*!*@x.com"
+    ::joingate::trust::block "*!*@x.com"
+    ::joingate::trust::is-blocked "n!u@x.com"
+} -result 1
+
+# ---- dispatch (stubbed side-effects) ----
+
+tcltest::test dispatch-block {block adds + replies} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::dispatch [dict create op block target "*!*@bad.com"] \
+        [::joingate::gate::ctx-pub "#motorcycles" "ted"]
+    list [::joingate::trust::is-blocked "x!y@bad.com"] \
+        [has "putlog *blocklist*"] \
+        [has "putserv PRIVMSG #motorcycles :ted: joingate: blocklisted *"]
+} -result {1 1 1}
+
+tcltest::test dispatch-allow {allow adds + replies} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::dispatch [dict create op allow target "*!*@good.com"] \
+        [::joingate::gate::ctx-dcc 5]
+    list [::joingate::trust::is-allowed "x!y@good.com"] \
+        [has "putdcc 5 joingate: allowlisted*"]
+} -result {1 1}
+
+tcltest::test dispatch-empty {empty parsed -> usage reply} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::dispatch "" [::joingate::gate::ctx-msg "ted"]
+    expr {[lsearch -glob [::stubs::calls] "putserv PRIVMSG ted :joingate: usage*"] >= 0}
+} -result 1
+
+tcltest::test dispatch-voice-cancels-soak {manual voice cancels an active soak} -setup {
+    reset-all
+    ::joingate::soak::start "user@1.2.3.4" \
+        [dict create nick bob state soaking_rbl] 300 {noop}
+} -body {
+    ::joingate::gate::dispatch [dict create op voice target bob] \
+        [::joingate::gate::ctx-pub "#motorcycles" "ted"]
+    list [::joingate::soak::exists "user@1.2.3.4"] \
+        [has "pushmode #motorcycles +v bob"] \
+        [has "putlog *manual voice bob cancelled soak*"]
+} -result {0 1 1}
+
+tcltest::test dispatch-sync {sync voices known/allowlisted occupants} -setup {
+    reset-all
+    ::stubs::set-chanlist "#motorcycles" {regular randomnick}
+    ::stubs::set-getchanhost regular "#motorcycles" "user@1.2.3.4"
+    ::stubs::set-nick2hand regular "#motorcycles" "regularhand"
+    ::stubs::set-getchanhost randomnick "#motorcycles" "user@5.6.7.8"
+    ::stubs::set-nick2hand randomnick "#motorcycles" "*"
+} -body {
+    ::joingate::gate::dispatch [dict create op sync target ""] \
+        [::joingate::gate::ctx-dcc 1]
+    list [has "pushmode #motorcycles +v regular"] \
+        [has "pushmode #motorcycles +v randomnick"] \
+        [has "putdcc 1 joingate: voiced 1 known*"]
+} -result {1 0 1}
+
+tcltest::test dispatch-sync-not-opped {sync not opped voices nobody} -setup {
+    reset-all
+    ::stubs::set-botisop 0
+    ::stubs::set-chanlist "#motorcycles" {regular}
+    ::stubs::set-nick2hand regular "#motorcycles" "regularhand"
+} -body {
+    ::joingate::gate::dispatch [dict create op sync target ""] \
+        [::joingate::gate::ctx-dcc 1]
+    list [has "pushmode *"] \
+        [has "putdcc 1 joingate: voiced 0 known*"]
+} -result {0 1}
+
+tcltest::cleanupTests

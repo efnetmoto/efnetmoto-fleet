@@ -1,0 +1,24 @@
+---
+name: TCL Tests
+
+on:
+  pull_request:
+    paths:
+      - 'shared/tcl-scripts/**'
+      - '.github/workflows/tcl-tests.yml'
+
+jobs:
+  tcl-tests:
+    name: TCL unit tests (tcltest, Tcl 8.6)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Run against the runtime Tcl (8.6.17 in Alpine 3.23), not dev's 9.x,
+      # so Tcl-9-only APIs (dict unset/getdef/map, lpop, string insert) are
+      # caught here rather than in the bot container.
+      - name: Run tcltest suite (Alpine 3.23 / Tcl 8.6.17)
+        run: |
+          docker run --rm -v "$PWD/shared/tcl-scripts":/t -w /t alpine:3.23 \
+            sh -c 'apk add --no-cache tcl >/dev/null && tclsh tests/all.tcl'

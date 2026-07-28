@@ -1,0 +1,123 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+# Shared reset for the lookup tests (compute is pure, needs no reset).
+proc reset-all {} {
+    ::stubs::reset
+    set ::joingate::RblPending [dict create]
+    set ::joingate::Timers [dict create]
+    set ::joingate::soak::Records [dict create]
+    set ::joingate::soak::KeyTimers [dict create]
+    set ::joingate::cfg [dict create \
+        channel "#motorcycles" rbl_providers {efnetrbl.org} rbl_timeout 3.0]
+    set ::captured ""
+}
+
+proc capture {verdict} {
+    set ::captured $verdict
+}
+
+# ---- rbl::compute (pure) ----
+
+tcltest::test compute-all-clean {all clean -> negative} -body {
+    ::joingate::rbl::compute {efnetrbl.org clean barracudacentral.org clean}
+} -result {positive 0 providers {}}
+
+tcltest::test compute-listed {any listed -> positive, lists provider} -body {
+    ::joingate::rbl::compute {efnetrbl.org listed barracudacentral.org clean}
+} -result {positive 1 providers efnetrbl.org}
+
+tcltest::test compute-error-fails-closed {error is positive} -body {
+    ::joingate::rbl::compute {efnetrbl.org clean barracudacentral.org error}
+} -result {positive 1 providers barracudacentral.org}
+
+tcltest::test compute-all-error {all error -> positive, all providers} -body {
+    ::joingate::rbl::compute {efnetrbl.org error barracudacentral.org error}
+} -result {positive 1 providers {efnetrbl.org barracudacentral.org}}
+
+tcltest::test compute-empty {empty outcomes -> negative} -body {
+    ::joingate::rbl::compute {}
+} -result {positive 0 providers {}}
+
+# ---- rbl::lookup (fake dnslookup + fake utimer) ----
+
+tcltest::test lookup-ip-listed {IP fast-path, listed -> positive} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 1 ip 127.0.0.2"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    return $::captured
+} -result {positive 1 providers efnetrbl.org}
+
+tcltest::test lookup-ip-clean {IP fast-path, NXDOMAIN -> clean} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 0 ip"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    return $::captured
+} -result {positive 0 providers {}}
+
+tcltest::test lookup-ip-timeout {no answer, guard fires -> error -> positive} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "pending"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    ::stubs::fire-next
+    return $::captured
+} -result {positive 1 providers efnetrbl.org}
+
+tcltest::test lookup-ip-non-127 {resolved but not 127.0.x -> error -> positive} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 1 ip 10.0.0.5"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    return $::captured
+} -result {positive 1 providers efnetrbl.org}
+
+tcltest::test lookup-mixed-providers {one listed one clean -> positive, one listed} -setup {
+    reset-all
+    set ::joingate::cfg [dict create channel "#motorcycles" \
+        rbl_providers {efnetrbl.org barracudacentral.org} rbl_timeout 3.0]
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 1 ip 127.0.0.2"
+    ::stubs::set-dnslookup "4.3.2.1.barracudacentral.org" "status 0 ip"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    return $::captured
+} -result {positive 1 providers efnetrbl.org}
+
+tcltest::test lookup-hostname-resolves {forward resolve then RBL clean} -setup {
+    reset-all
+    ::stubs::set-dnslookup "dyn.example.com" "status 1 ip 5.6.7.8"
+    ::stubs::set-dnslookup "8.7.6.5.efnetrbl.org" "status 0 ip"
+} -body {
+    ::joingate::rbl::lookup "user@dyn.example.com" capture
+    return $::captured
+} -result {positive 0 providers {}}
+
+tcltest::test lookup-hostname-unresolvable {forward NXDOMAIN -> fail closed} -setup {
+    reset-all
+    ::stubs::set-dnslookup "dyn.example.com" "status 0 ip"
+} -body {
+    ::joingate::rbl::lookup "user@dyn.example.com" capture
+    return $::captured
+} -result {positive 1 providers unresolved-host}
+
+tcltest::test lookup-hostname-forward-timeout {forward guard fires -> fail closed} -setup {
+    reset-all
+    ::stubs::set-dnslookup "dyn.example.com" "pending"
+} -body {
+    ::joingate::rbl::lookup "user@dyn.example.com" capture
+    ::stubs::fire-next
+    return $::captured
+} -result {positive 1 providers unresolved-host}
+
+tcltest::test lookup-no-leftover-timers {clean lookup cancels its guard} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 0 ip"
+} -body {
+    ::joingate::rbl::lookup "user@1.2.3.4" capture
+    list [llength [::stubs::live-timers]] [llength [dict keys $::joingate::Timers]]
+} -result {0 0}
+
+tcltest::cleanupTests

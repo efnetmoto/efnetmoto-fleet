@@ -1,0 +1,219 @@
+package require tcltest 2.5
+source [file join [file dirname [info script]] stubs.tcl]
+source [file join [file dirname [info script]] .. joingate.tcl]
+
+proc reset-all {} {
+    ::stubs::reset
+    set ::joingate::Timers [dict create]
+    set ::joingate::soak::Records [dict create]
+    set ::joingate::soak::KeyTimers [dict create]
+    set ::joingate::RblPending [dict create]
+    namespace eval ::joingate::trust {
+        variable Blocked [list]
+        variable Allowed [list]
+    }
+    set ::joingate::cfg [dict create channel "#motorcycles" enabled 1 \
+        soak_clean 30 soak_rbl 300 op_window 300 rbl_providers {efnetrbl.org} \
+        rbl_timeout 3.0 wallchop_tpl \
+        "joingate: %hostmask% (nick %nick%) RBL: %providers% - vet with: %cmd%"]
+}
+
+proc has {pattern} {
+    return [expr {[lsearch -glob [::stubs::calls] $pattern] >= 0}]
+}
+
+# ---- on_join decision matrix ----
+
+tcltest::test join-known-user {handle ne * -> immediate voice, no soak} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_join regular user@1.2.3.4 regularhand #motorcycles
+    list [has "pushmode #motorcycles +v regular"] \
+        [::joingate::soak::exists "user@1.2.3.4"]
+} -result {1 0}
+
+tcltest::test join-blocklisted {blocklisted -> kick-ban, no soak} -setup {
+    reset-all
+    ::joingate::trust::block "*!*@1.2.3.4"
+} -body {
+    ::joingate::gate::on_join bad user@1.2.3.4 * #motorcycles
+    list [has "newchanban #motorcycles *!*@1.2.3.4 Pompone *"] \
+        [has "putkick #motorcycles bad *"] \
+        [::joingate::soak::exists "user@1.2.3.4"]
+} -result {1 1 0}
+
+tcltest::test join-allowlisted {allowlisted -> immediate voice, no RBL} -setup {
+    reset-all
+    ::joingate::trust::allow "*!*@good.com"
+} -body {
+    ::joingate::gate::on_join good user@good.com * #motorcycles
+    list [has "pushmode #motorcycles +v good"] \
+        [::joingate::soak::exists "user@good.com"]
+} -result {1 0}
+
+tcltest::test join-unknown-clean {unknown + clean RBL -> short soak -> auto-voice} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 0 ip"
+} -body {
+    ::joingate::gate::on_join lurker user@1.2.3.4 * #motorcycles
+    set s1 [::joingate::soak::exists "user@1.2.3.4"]
+    set st1 [dict get [::joingate::soak::get "user@1.2.3.4"] state]
+    ::stubs::fire-next
+    set s2 [::joingate::soak::exists "user@1.2.3.4"]
+    list $s1 $st1 $s2 [has "pushmode #motorcycles +v lurker"]
+} -result {1 soaking_clean 0 1}
+
+tcltest::test join-unknown-positive {positive -> wallchops then kick-ban, never +v} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 1 ip 127.0.0.2"
+} -body {
+    ::joingate::gate::on_join troll user@1.2.3.4 * #motorcycles
+    set st1 [dict get [::joingate::soak::get "user@1.2.3.4"] state]
+    ::stubs::fire-next
+    set st2 [dict get [::joingate::soak::get "user@1.2.3.4"] state]
+    set wallchops [has "putquick NOTICE @#motorcycles :*"]
+    ::stubs::fire-next
+    list $st1 $st2 $wallchops [has "newchanban #motorcycles *!*@1.2.3.4 *"] \
+        [has "putkick #motorcycles troll *"] [has "pushmode #motorcycles +v troll"]
+} -result {soaking_rbl awaiting_op 1 1 1 0}
+
+tcltest::test soak-expire-already-voiced {voiced before expiry -> clear, no action} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_rbl #motorcycles bob user@1.2.3.4 bob!user@1.2.3.4 \
+        {positive 0 providers {}}
+    ::stubs::set-isvoice bob #motorcycles 1
+    ::stubs::fire-next
+    list [::joingate::soak::exists "user@1.2.3.4"] [has "pushmode *"]
+} -result {0 0}
+
+tcltest::test not-opped-voice {deopped -> voice skipped, logged} -setup {
+    reset-all
+} -body {
+    ::stubs::set-botisop 0
+    ::joingate::gate::on_join regular user@1.2.3.4 regularhand #motorcycles
+    list [has "pushmode *"] [has "putlog joingate: not opped*"]
+} -result {0 1}
+
+tcltest::test not-opped-kickban {deopped -> kick-ban skipped} -setup {
+    reset-all
+    ::stubs::set-botisop 0
+    ::joingate::trust::block "*!*@1.2.3.4"
+} -body {
+    ::joingate::gate::on_join bad user@1.2.3.4 * #motorcycles
+    list [has "newchanban *"] [has "putkick *"] [has "putlog joingate: not opped*"]
+} -result {0 0 1}
+
+tcltest::test disabled {enabled=0 -> on_join returns early} -setup {
+    reset-all
+    set ::joingate::cfg [dict create channel "#motorcycles" enabled 0]
+} -body {
+    ::joingate::gate::on_join lurker user@1.2.3.4 * #motorcycles
+    list [has "pushmode *"] [has "putlog *unknown join*"] \
+        [::joingate::soak::exists "user@1.2.3.4"]
+} -result {0 0 0}
+
+tcltest::test wrong-channel {join to other channel -> ignored} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_join lurker user@1.2.3.4 * #other
+    list [has "pushmode *"] [::joingate::soak::exists "user@1.2.3.4"]
+} -result {0 0}
+
+tcltest::test bot-own-join {bot join -> bootstrap-voice, never the gate} -setup {
+    reset-all
+    set ::botnick "Pompone"
+    ::stubs::set-chanlist "#motorcycles" {regular troll}
+    ::stubs::set-getchanhost regular "#motorcycles" "user@1.2.3.4"
+    ::stubs::set-nick2hand regular "#motorcycles" "regularhand"
+    ::stubs::set-getchanhost troll "#motorcycles" "user@5.6.7.8"
+    ::stubs::set-nick2hand troll "#motorcycles" "*"
+} -body {
+    ::joingate::gate::on_join Pompone pompone@host Pompone #motorcycles
+    list [has "pushmode #motorcycles +v regular"] \
+        [has "pushmode #motorcycles +v troll"] \
+        [::joingate::soak::exists "pompone@host"]
+} -result {1 0 0}
+
+# ---- cancellation / nick binds ----
+
+tcltest::test part-cancels-soak {part during soak -> cancelled} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_rbl #motorcycles bob user@1.2.3.4 bob!user@1.2.3.4 \
+        {positive 0 providers {}}
+    ::joingate::gate::on_part bob user@1.2.3.4 * #motorcycles
+    list [::joingate::soak::exists "user@1.2.3.4"] [llength [::stubs::live-timers]]
+} -result {0 0}
+
+tcltest::test part-cancels-pending-rbl {part during RBL lookup -> no soak later} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "pending"
+} -body {
+    ::joingate::gate::on_join lurker user@1.2.3.4 * #motorcycles
+    # RBL lookup in flight: one guard timer live, RblPending present.
+    set t_before [llength [::stubs::live-timers]]
+    set p_before [dict exists $::joingate::RblPending "user@1.2.3.4"]
+    ::joingate::gate::on_part lurker user@1.2.3.4 * #motorcycles
+    set t_after [llength [::stubs::live-timers]]
+    set p_after [dict exists $::joingate::RblPending "user@1.2.3.4"]
+    # A late RBL callback (the in-flight dnslookup answering after the part)
+    # must short-circuit on the missing RblPending and start no soak.
+    ::joingate::rbl::_dns-cb "user@1.2.3.4" efnetrbl.org 127.0.0.2 \
+        4.3.2.1.efnetrbl.org 1
+    list $t_before $p_before $t_after $p_after \
+        [::joingate::soak::exists "user@1.2.3.4"] [has "putlog *soak start*"]
+} -result {1 1 0 0 0 0}
+
+tcltest::test sign-cancels {sign cancels soak} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_rbl #motorcycles bob user@1.2.3.4 bob!user@1.2.3.4 \
+        {positive 1 providers efnetrbl.org}
+    ::joingate::gate::on_sign bob user@1.2.3.4 * #motorcycles "quit"
+    list [::joingate::soak::exists "user@1.2.3.4"] [llength [::stubs::live-timers]]
+} -result {0 0}
+
+tcltest::test splt-cancels {netsplit cancels soak} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_rbl #motorcycles bob user@1.2.3.4 bob!user@1.2.3.4 \
+        {positive 0 providers {}}
+    ::joingate::gate::on_splt bob user@1.2.3.4 * #motorcycles
+    ::joingate::soak::exists "user@1.2.3.4"
+} -result 0
+
+tcltest::test nick-renames-soak {nick change keeps soak, updates nick} -setup {
+    reset-all
+} -body {
+    ::joingate::gate::on_rbl #motorcycles bob user@1.2.3.4 bob!user@1.2.3.4 \
+        {positive 0 providers {}}
+    ::joingate::gate::on_nick bob user@1.2.3.4 * #motorcycles bob2
+    list [::joingate::soak::exists "user@1.2.3.4"] \
+        [dict get [::joingate::soak::get "user@1.2.3.4"] nick] \
+        [llength [::stubs::live-timers]]
+} -result {1 bob2 1}
+
+tcltest::test rejn-fresh-gate {rejn is treated as a fresh join} -setup {
+    reset-all
+    ::stubs::set-dnslookup "4.3.2.1.efnetrbl.org" "status 0 ip"
+} -body {
+    ::joingate::gate::on_rejn lurker user@1.2.3.4 * #motorcycles
+    ::joingate::soak::exists "user@1.2.3.4"
+} -result 1
+
+# ---- notice content (FR-N2) ----
+
+tcltest::test notice-includes-required-fields {wallchops msg includes required fields} -setup {
+    reset-all
+} -body {
+    set rec [dict create hostmask "troll!user@1.2.3.4" nick troll \
+        joined_ms [clock milliseconds] rbl {positive 1 providers {efnetrbl.org}}]
+    set msg [::joingate::gate::notice $rec]
+    list [string match "*troll!user@1.2.3.4*" $msg] \
+        [string match "*nick troll*" $msg] \
+        [string match "*RBL: efnetrbl.org*" $msg] \
+        [string match "*gatevoice troll*" $msg]
+} -result {1 1 1 1}
+
+tcltest::cleanupTests
