@@ -33,7 +33,7 @@ irc_servers:
 # Channel Configuration
 channels:
   - name: "#motorcycles"
-    mode: "+nt-k"
+    mode: "+mnt-k"
     idle_kick: 0
     stopnethack_mode: 0
     revenge_mode: 0

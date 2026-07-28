@@ -32,6 +32,14 @@ environment_variables:
   # Docker-internal URL of the url-shortener service on pompone-net
   shortener_api_url: "http://url-shortener:8080"
   brave_api_key: "{{ vault_brave_api_key }}"
+  # Anti-troll join-gate (single-bot: Pompone only). See shared/tcl-scripts/joingate.tcl.
+  joingate_channel: "#motorcycles"
+  joingate_rbl_providers: "efnetrbl.org"
+  joingate_soak_clean_seconds: 30
+  joingate_soak_rbl_hit_seconds: 300
+  joingate_op_response_window_seconds: 300
+  joingate_rbl_lookup_timeout_seconds: 3
+  joingate_enabled: 1
 
 # Runtime directories to create
 runtime_dirs:
@@ -55,6 +63,7 @@ bot_scripts:
   - "scripts/dccwhois.tcl"
   - "scripts/userinfo.tcl"
   - "scripts/quotepong.tcl"
+  - "scripts-shared/joingate.tcl"
   - "scripts-python-shared/searchbot.py"
 
 # PISG Configuration
