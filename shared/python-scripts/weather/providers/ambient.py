@@ -17,6 +17,17 @@ _ENDPOINT = "https://lightning.ambientweather.net/devices"
 
 _AMBIENT_TYPES = {LocationType.AMBIENT_SLUG, LocationType.AMBIENT_URL}
 
+# Fields lastData must carry as live scalars to populate WeatherResult's required
+# (non-optional) attributes.
+#
+# When some stations' outdoor sensor array has gone offline, they stop including
+# these in their data push while still reporting indoor/console fields
+# (e.g. baromrelin/baromabsin) and retaining a stale `hl` (daily high/low) block
+# from earlier readings. When that happens we can't honestly show current conditions,
+# so we detect it up front rather than letting a KeyError on an arbitrary field surface
+# as a confusing parse error.
+_REQUIRED_LIVE_FIELDS = ("tempf", "feelsLike", "humidity", "winddir", "windspeedmph")
+
 
 class AmbientProvider(WeatherProvider):
     @property
@@ -59,6 +70,11 @@ class AmbientProvider(WeatherProvider):
             last = device["lastData"]
             info = device["info"]
 
+            if any(field not in last for field in _REQUIRED_LIVE_FIELDS):
+                raise ProviderError(
+                    "Station data is out of date. It may be offline or between reports."
+                )
+
             location_name = f"{info['name']}, {info['coords']['location']}"
 
             temp_f = float(last["tempf"])
@@ -100,6 +116,8 @@ class AmbientProvider(WeatherProvider):
                 event_rain_in = None
                 event_rain_mm = None
 
+        except ProviderError:
+            raise
         except (KeyError, TypeError, ValueError, IndexError) as exc:
             raise ProviderError(f"Could not parse Ambient Weather response: {exc}")
 
