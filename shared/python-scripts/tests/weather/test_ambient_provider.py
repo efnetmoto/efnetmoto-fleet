@@ -19,6 +19,14 @@ def ambient_devices_raw_resp(fixtures_dir):
 
 
 @pytest.fixture
+def ambient_devices_stale_resp(fixtures_dir):
+    """lastData with only console/barometer scalars + a stale `hl` block —
+    simulates an outdoor sensor array that has stopped reporting."""
+    with open(fixtures_dir / "ambient_device_stale.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture
 def slug_loc():
     return LocationResult(type=LocationType.AMBIENT_SLUG, query=_SLUG, raw=_SLUG)
 
@@ -80,6 +88,20 @@ def test_non_200_raises_provider_error(provider, slug_loc):
         status=400,
     )
     with pytest.raises(ProviderError, match="kablooey"):
+        provider.get_weather(slug_loc)
+
+
+@responses_lib.activate
+def test_missing_live_fields_raises_provider_error(provider, slug_loc, ambient_devices_stale_resp):
+    """Station reporting only console/barometer scalars (outdoor sensor offline)
+    should raise a clear, specific error instead of a bare KeyError message."""
+    responses_lib.add(
+        responses_lib.GET,
+        _ENDPOINT,
+        json=ambient_devices_stale_resp,
+        status=200,
+    )
+    with pytest.raises(ProviderError, match="out of date"):
         provider.get_weather(slug_loc)
 
 
