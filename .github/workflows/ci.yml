@@ -32,7 +32,7 @@ jobs:
         run: ansible-galaxy collection install -r ansible/requirements.yml --force
 
       - name: Run ansible-lint
-        uses: ansible/ansible-lint@43b00b540e6cdfd773e3b74e0f8afebb49967847 # pin: main @ 2026-07-25
+        uses: ansible/ansible-lint@f879b8479dc5714a8cd22f00d9a381b39925df87 # pin: main @ 2026-07-25
         with:
           requirements_file: ansible/requirements.yml
 
@@ -82,7 +82,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Run hadolint
-        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        uses: hadolint/hadolint-action@2a66e89f53d0771bb131a7fa31f3136336094aa6 # v3.4.0
         with:
           dockerfile: services/*/Dockerfile
           recursive: true
