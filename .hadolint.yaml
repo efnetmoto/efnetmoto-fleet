@@ -7,3 +7,4 @@ ignored:
 
 trustedRegistries:
   - docker.io
+  - ghcr.io

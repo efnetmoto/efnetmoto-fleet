@@ -1,5 +1,7 @@
+ARG ALPINE_REF=3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+
 # ------ builder ------
-FROM alpine:3.23 AS builder
+FROM docker.io/library/alpine:${ALPINE_REF} AS builder
 
 ARG PISG_VERSION=0.73 
 
@@ -11,7 +13,7 @@ RUN apk add --no-cache \
     && chmod +x /pisg/pisg 
 
 # ------ runtime -------
-FROM alpine:3.23
+FROM alpine:${ALPINE_REF}
 
 ENV STATSGEN_ON_STARTUP=false \
     CRON_SCHEDULE=@hourly
