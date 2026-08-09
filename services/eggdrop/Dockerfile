@@ -1,5 +1,8 @@
+ARG ALPINE_REF=3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+ARG UV_REF=0.12@sha256:5c122244bea9d255105d4d4400de450ec171296733a326eba624e0278cf0c75e 
+
 # ------ builder ------
-FROM alpine:3.23 AS builder
+FROM docker.io/library/alpine:${ALPINE_REF} as builder
 
 ARG EGGDROP_VERSION=1.10.1
 
@@ -31,7 +34,7 @@ RUN apk add --no-cache --virtual egg-deps \
     && rm -rf eggdrop-${EGGDROP_VERSION}
 
 # ------ runtime ------
-FROM alpine:3.23
+FROM docker.io/library/alpine:${ALPINE_REF}
 
 LABEL org.opencontainers.image.authors="Ted Strzalkowski <tedski@efnetmoto.com>" \
       org.opencontainers.image.url="https://github.com/efnetmoto/efnetmoto-fleet"
@@ -59,7 +62,7 @@ RUN mkdir -p /eggdrop/data \
 WORKDIR /eggdrop
 
 # Install Python dependencies
-COPY --from=ghcr.io/astral-sh/uv:0.5.29 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:${UV_REF} /uv /usr/local/bin/uv
 COPY shared/python-scripts/pyproject.toml shared/python-scripts/uv.lock /eggdrop/
 RUN uv venv /eggdrop/.venv \
     && uv sync --frozen --no-dev
