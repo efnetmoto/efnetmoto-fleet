@@ -30,6 +30,7 @@ EXPOSE 8080
 # Liveness probe against GET /health. Uses nc + grep (busybox), matching
 # the nginx service's healthcheck pattern rather than depending on wget's
 # exit-code semantics.
+# hadolint ignore=DL3025
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD printf 'GET /health HTTP/1.0\r\nHost: localhost\r\n\r\n' | nc -w3 127.0.0.1 8080 | head -1 | grep -q '200 OK'
 
