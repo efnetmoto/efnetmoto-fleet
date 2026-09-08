@@ -43,6 +43,10 @@ def _serialize(pref: UserPref) -> str:
     Returns:
         Serialized string representation.
 
+    Provider-selection flags (--metar or --<id>) appear first, then units,
+    then location. --metar and --<id> are mutually exclusive — at most one
+    is ever emitted.
+
     Examples:
         UserPref("94025", metar=False, units=METRIC)    → "94025"
         UserPref("KSFO", metar=True, units=METRIC)      → "--metar KSFO"
@@ -50,10 +54,17 @@ def _serialize(pref: UserPref) -> str:
         UserPref("KSFO", metar=True, units=IMPERIAL)    → "--metar --imperial KSFO"
         UserPref(None, metar=False, units=IMPERIAL)     → "--imperial"
         UserPref(None, metar=False, units=METRIC)       → ""
+        UserPref("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", provider_id="awn")
+            → "--awn a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
+        UserPref("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", provider_id="awn",
+                 units=IMPERIAL)
+            → "--awn --imperial a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"
     """
     parts = []
     if pref.metar:
         parts.append("--metar")
+    if pref.provider_id:
+        parts.append(f"--{pref.provider_id}")
     if pref.units == Units.IMPERIAL:
         parts.append("--imperial")
     if pref.location is not None:
@@ -73,6 +84,7 @@ def _deserialize(s: str) -> UserPref | None:
     """
     metar = False
     units = Units.METRIC
+    provider_id = None
     tokens = s.split()
     remaining = []
     for token in tokens:
@@ -82,12 +94,17 @@ def _deserialize(s: str) -> UserPref | None:
             units = Units.IMPERIAL
         elif token == "--metric":
             units = Units.METRIC
+        elif token.startswith("--"):
+            # Any unrecognized --token is a provider id (e.g. --awn).
+            # Locations never start with "--", so this is unambiguous without
+            # importing the router — keeping prefs decoupled from providers.
+            provider_id = token[2:]
         else:
             remaining.append(token)
     location = " ".join(remaining) if remaining else None
 
     # A completely empty pref (no flags, no location) is treated as absent
-    if location is None and not metar and units == Units.METRIC:
+    if location is None and not metar and units == Units.METRIC and not provider_id:
         return None
 
-    return UserPref(location=location, metar=metar, units=units)
+    return UserPref(location=location, metar=metar, units=units, provider_id=provider_id)

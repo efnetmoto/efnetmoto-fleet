@@ -5,7 +5,7 @@ import requests
 import responses as responses_lib
 
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType
+from weather.models import FormatMode, LocationResult, LocationType
 from weather.providers.aprs import AprsProvider
 
 
@@ -53,6 +53,18 @@ def test_aprs_supports_aprs_only(provider):
         provider.supports(LocationResult(type=LocationType.CITY_STATE, query="SF", raw="SF"))
         is False
     )
+
+
+def test_aprs_identity_id(provider):
+    assert provider.id == "aprs"
+
+
+def test_aprs_identity_preferred_types(provider):
+    assert provider.preferred_types == frozenset({LocationType.APRS})
+
+
+def test_aprs_identity_format_mode(provider):
+    assert provider.format_mode == FormatMode.PWS
 
 
 @responses_lib.activate

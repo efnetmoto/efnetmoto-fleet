@@ -2,7 +2,7 @@ import requests
 
 from weather.conversions import degrees_to_cardinal, humidity_from_dewpoint
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType, WeatherResult
+from weather.models import FormatMode, LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
 
 
@@ -79,6 +79,10 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
 
 
 class AvWxProvider(WeatherProvider):
+    preferred_types = frozenset({LocationType.ICAO})
+    format_mode = FormatMode.METAR
+    id = "avwx"
+
     @property
     def name(self) -> str:
         return "aviationweather.gov"

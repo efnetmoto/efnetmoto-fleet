@@ -8,6 +8,8 @@ from weather.providers.base import WeatherProvider
 
 
 class WeatherAPIProvider(WeatherProvider):
+    id = "weatherapi"
+
     def __init__(self):
         key = os.environ.get("WEATHERAPI_KEY")
         if not key:

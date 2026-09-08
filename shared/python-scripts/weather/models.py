@@ -17,6 +17,18 @@ class Units(Enum):
     IMPERIAL = "imperial"  # imperial first
 
 
+class FormatMode(Enum):
+    """Which formatter a provider's results should be rendered with.
+
+    Declared per-provider so the handler can select a formatter from the
+    provider's self-description rather than from isinstance checks.
+    """
+
+    CURRENT = auto()  # formatter.format_current  (WeatherAPI)
+    PWS = auto()  # formatter.format_pws      (Ambient, APRS)
+    METAR = auto()  # formatter.format_metar    (AvWx)
+
+
 @dataclass
 class LocationResult:
     type: LocationType
@@ -71,3 +83,4 @@ class UserPref:
     location: str | None = None  # None if not yet set
     metar: bool = False  # whether --metar was set when the pref was saved
     units: Units = Units.METRIC  # default matches existing bot behavior
+    provider_id: str | None = None  # forced provider (e.g. "awn"), or None for auto

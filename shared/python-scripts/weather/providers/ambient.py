@@ -10,7 +10,7 @@ import requests
 
 from weather.conversions import degrees_to_cardinal, f_to_c, inches_to_mm, mph_to_kph
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType, WeatherResult
+from weather.models import FormatMode, LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
 
 _ENDPOINT = "https://lightning.ambientweather.net/devices"
@@ -30,6 +30,10 @@ _REQUIRED_LIVE_FIELDS = ("tempf", "feelsLike", "humidity", "winddir", "windspeed
 
 
 class AmbientProvider(WeatherProvider):
+    preferred_types = frozenset({LocationType.AMBIENT_SLUG, LocationType.AMBIENT_URL})
+    format_mode = FormatMode.PWS
+    id = "awn"
+
     @property
     def name(self) -> str:
         return "Ambient Weather (ambientweather.net)"

@@ -61,20 +61,13 @@ def reset_mocks(putserv_mock, putlog_mock, validuser_mock):
 # handle_wzset — unrecognized user
 
 
-def test_wzset_unregistered_user_blocked(putserv_mock):
-    w.handle_wzset("SomeNick", "host@example.com", "*", "#moto", "94025")
+@pytest.mark.parametrize("text", ["94025", "--imperial"])
+def test_wzset_unregistered_user_blocked(putserv_mock, text):
+    w.handle_wzset("SomeNick", "host@example.com", "*", "#moto", text)
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
     assert "registered bot user" in msg
     assert "docs/user/weather/#getting-registered" in msg
-
-
-def test_wzset_flags_only_unregistered_user_blocked(putserv_mock):
-    """Flags-only path (.wzset --imperial) must also be blocked before any pref logic."""
-    w.handle_wzset("SomeNick", "host@example.com", "*", "#moto", "--imperial")
-    putserv_mock.assert_called_once()
-    msg = putserv_mock.call_args[0][0]
-    assert "registered bot user" in msg
 
 
 # handle_wz — unrecognized user
@@ -410,3 +403,254 @@ def test_bind_registered(kind, command, handler_name):
     """Each (kind, command) tuple is bound to the named handler — not just any handler."""
     expected = (kind, "*", command, getattr(w, handler_name))
     assert expected in [call[0] for call in _bind.call_args_list]
+
+
+_KNOWN_PROVIDER_IDS = frozenset({"weatherapi", "avwx", "aprs", "awn"})
+_AWN_SLUG = "aaaabbbbccccddddaaaabbbbccccdddd"
+
+
+def test_parse_flags_no_provider():
+    metar, units, provider_id, remainder, units_explicit = w.parse_flags(
+        "94025", _KNOWN_PROVIDER_IDS
+    )
+    assert metar is False
+    assert provider_id is None
+    assert remainder == "94025"
+    assert units_explicit is False
+
+
+def test_parse_flags_provider_awn():
+    metar, units, provider_id, remainder, units_explicit = w.parse_flags(
+        "--awn aaaabbbbccccddddaaaabbbbccccdddd", _KNOWN_PROVIDER_IDS
+    )
+    assert metar is False
+    assert provider_id == "awn"
+    assert remainder == "aaaabbbbccccddddaaaabbbbccccdddd"
+    assert units_explicit is False
+
+
+def test_parse_flags_provider_with_units():
+    metar, units, provider_id, remainder, units_explicit = w.parse_flags(
+        "--awn --imperial aaaabbbbccccddddaaaabbbbccccdddd", _KNOWN_PROVIDER_IDS
+    )
+    assert provider_id == "awn"
+    assert units == Units.IMPERIAL
+    assert units_explicit is True
+    assert remainder == "aaaabbbbccccddddaaaabbbbccccdddd"
+
+
+def test_parse_flags_unknown_flag_lists_providers():
+    """Error message lists all available provider flags."""
+    try:
+        w.parse_flags("--foo 94025", _KNOWN_PROVIDER_IDS)
+    except w.ParseFlagsError as e:
+        msg = str(e)
+        assert "--awn" in msg
+        assert "--avwx" in msg
+        assert "--aprs" in msg
+        assert "--weatherapi" in msg
+
+
+@pytest.mark.parametrize(
+    "text, match",
+    [
+        ("--metar --awn KSFO", "not both"),
+        ("--foo 94025", "Unknown flag"),
+        ("--metric --imperial 94025", "--metric or --imperial"),
+    ],
+)
+def test_parse_flags_rejects(text, match):
+    with pytest.raises(w.ParseFlagsError, match=match):
+        w.parse_flags(text, _KNOWN_PROVIDER_IDS)
+
+
+def test_parse_flags_metar_only():
+    metar, units, provider_id, remainder, units_explicit = w.parse_flags(
+        "--metar KSFO", _KNOWN_PROVIDER_IDS
+    )
+    assert metar is True
+    assert provider_id is None
+    assert remainder == "KSFO"
+
+
+def test_wz_provider_override_calls_router_with_id():
+    """--awn <slug> passes provider_id='awn' to the router."""
+    with (
+        patch.object(w.resolver, "classify", return_value=MagicMock()),
+        patch.object(w._router, "route", side_effect=Exception("stop here")) as mock_route,
+    ):
+        w.handle_wz("SomeNick", "host", "somehandle", "#moto", f"--awn {_AWN_SLUG}")
+    mock_route.assert_called_once()
+    assert mock_route.call_args[1].get("provider_id") == "awn"
+
+
+def test_wz_provider_override_unregistered_user_allowed(putserv_mock):
+    """Ad-hoc .w --awn <slug> works for unregistered users (no reg guard)."""
+    with (
+        patch.object(w._router, "route", side_effect=Exception("stop here")),
+        patch.object(w.resolver, "classify", return_value=MagicMock()),
+    ):
+        w.handle_wz("SomeNick", "host", "*", "#moto", f"--awn {_AWN_SLUG}")
+    msg = putserv_mock.call_args[0][0]
+    assert "registered" not in msg
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [w.handle_wz, w.handle_wzset],
+    ids=["wz", "wzset"],
+)
+def test_metar_and_provider_rejected(putserv_mock, handler):
+    """--metar and --<provider> together are rejected in both .w and .wzset."""
+    handler("SomeNick", "host", "somehandle", "#moto", "--metar --avwx KSFO")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert "not both" in msg
+
+
+def test_wz_unknown_flag_rejected(putserv_mock):
+    """Unknown --flag is rejected with an error listing providers."""
+    w.handle_wz("SomeNick", "host", "somehandle", "#moto", "--foo 94025")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert "Unknown flag" in msg
+
+
+def test_wz_provider_override_unsupported_location(putserv_mock):
+    """Forcing a provider on a location it can't handle surfaces the error."""
+    with patch.object(w._router, "route", side_effect=ProviderError("can't handle that location")):
+        w.handle_wz("SomeNick", "host", "somehandle", "#moto", "--awn 94025")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert "can't handle" in msg
+
+
+def test_wz_provider_override_no_forecast_probe_for_pws():
+    """PWS-format providers skip the forecast probe entirely."""
+    mock_provider = MagicMock()
+    mock_provider.format_mode = w.FormatMode.PWS
+    mock_provider.get_weather.return_value = MagicMock()
+    with (
+        patch.object(w.resolver, "classify", return_value=MagicMock()),
+        patch.object(w._router, "route", return_value=mock_provider),
+        patch.object(w.formatter, "format_pws"),
+    ):
+        w.handle_wz("SomeNick", "host", "somehandle", "#moto", f"--awn {_AWN_SLUG}")
+    mock_provider.get_forecast.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "flag, location, format_mode, expected_formatter",
+    [
+        ("--awn", _AWN_SLUG, w.FormatMode.PWS, "format_pws"),
+        ("--avwx", "KSFO", w.FormatMode.METAR, "format_metar"),
+        ("--weatherapi", "KSFO", w.FormatMode.CURRENT, "format_current"),
+    ],
+)
+def test_wz_provider_override_format_selection(flag, location, format_mode, expected_formatter):
+    """Forcing a provider selects the formatter matching its format_mode."""
+    mock_provider = MagicMock()
+    mock_provider.format_mode = format_mode
+    mock_provider.get_weather.return_value = MagicMock()
+    mock_provider.get_forecast.return_value = MagicMock()
+    with (
+        patch.object(w.resolver, "classify", return_value=MagicMock()),
+        patch.object(w._router, "route", return_value=mock_provider),
+        patch.object(w.formatter, "format_pws") as mock_pws,
+        patch.object(w.formatter, "format_metar") as mock_metar,
+        patch.object(w.formatter, "format_current") as mock_current,
+    ):
+        w.handle_wz("SomeNick", "host", "somehandle", "#moto", f"{flag} {location}")
+    fmt_mocks = {
+        "format_pws": mock_pws,
+        "format_metar": mock_metar,
+        "format_current": mock_current,
+    }
+    for name, mock in fmt_mocks.items():
+        if name == expected_formatter:
+            mock.assert_called_once()
+        else:
+            mock.assert_not_called()
+
+
+def test_wz_user_with_provider_override():
+    """--user foo --awn uses foo's saved location but forces the awn provider."""
+    pref = UserPref(location=_AWN_SLUG, metar=False, units=Units.METRIC)
+    with (
+        patch.object(w.prefs, "get_pref", return_value=pref),
+        patch.object(w.resolver, "classify", return_value=MagicMock()) as mock_classify,
+        patch.object(w._router, "route", side_effect=Exception("stop here")) as mock_route,
+    ):
+        w.handle_wz("AskingNick", "host", "*", "#moto", "--user foo --awn")
+    mock_classify.assert_called_once_with(_AWN_SLUG)
+    assert mock_route.call_args[1].get("provider_id") == "awn"
+
+
+def test_wz_no_args_replays_saved_provider_id():
+    """Registered user with no args replays a saved provider_id."""
+    pref = UserPref(
+        location=_AWN_SLUG,
+        metar=False,
+        units=Units.METRIC,
+        provider_id="awn",
+    )
+    with (
+        patch.object(w.prefs, "get_pref", return_value=pref),
+        patch.object(w.resolver, "classify", return_value=MagicMock()) as mock_classify,
+        patch.object(w._router, "route", side_effect=Exception("stop here")) as mock_route,
+    ):
+        w.handle_wz("SomeNick", "host", "somehandle", "#moto", "")
+    mock_classify.assert_called_once_with(_AWN_SLUG)
+    assert mock_route.call_args[1].get("provider_id") == "awn"
+
+
+def test_wzset_provider_override_saves_id(putserv_mock):
+    """A valid .wzset --awn <slug> saves provider_id on the pref."""
+    mock_provider = MagicMock()
+    with (
+        patch.object(w._router, "route", return_value=mock_provider),
+        patch.object(w.prefs, "get_pref", return_value=None),
+        patch.object(w.prefs, "set_pref") as mock_set,
+    ):
+        w.handle_wzset("SomeNick", "host", "somehandle", "#moto", f"--awn {_AWN_SLUG}")
+    mock_set.assert_called_once()
+    saved_pref = mock_set.call_args[0][1]
+    assert saved_pref.provider_id == "awn"
+    assert saved_pref.location == _AWN_SLUG
+    msg = putserv_mock.call_args[0][0]
+    assert "Default set to" in msg
+    assert "--awn" in msg
+
+
+@pytest.mark.parametrize(
+    "handler",
+    [w.handle_wz, w.handle_wzset],
+    ids=["wz", "wzset"],
+)
+def test_provider_override_without_location_rejected(putserv_mock, handler):
+    """--awn with no location is rejected in both .w and .wzset."""
+    handler("SomeNick", "host", "somehandle", "#moto", "--awn")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert "--awn requires a location" in msg
+
+
+def test_wzset_provider_override_routes_with_id(putserv_mock):
+    """Probe during .wzset --awn passes provider_id to the router."""
+    mock_provider = MagicMock()
+    with (
+        patch.object(w._router, "route", return_value=mock_provider) as mock_route,
+        patch.object(w.prefs, "get_pref", return_value=None),
+        patch.object(w.prefs, "set_pref"),
+    ):
+        w.handle_wzset("SomeNick", "host", "somehandle", "#moto", f"--awn {_AWN_SLUG}")
+    mock_route.assert_called_once()
+    assert mock_route.call_args[1].get("provider_id") == "awn"
+
+
+def test_wzset_usage_mentions_provider(putserv_mock):
+    """Usage message includes --<provider> in the syntax."""
+    w.handle_wzset("SomeNick", "host", "somehandle", "#moto", "")
+    putserv_mock.assert_called_once()
+    msg = putserv_mock.call_args[0][0]
+    assert "--<provider>" in msg

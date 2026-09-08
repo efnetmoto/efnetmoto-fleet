@@ -5,7 +5,7 @@ import requests
 import responses as responses_lib
 
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType
+from weather.models import FormatMode, LocationResult, LocationType
 from weather.providers.weatherapi import WeatherAPIProvider
 
 
@@ -86,6 +86,19 @@ def test_missing_api_key(monkeypatch):
 def test_supports_all_location_types(provider, loc_type):
     loc = LocationResult(type=loc_type, query="test", raw="test")
     assert provider.supports(loc) is True
+
+
+def test_weatherapi_identity_id(provider):
+    assert provider.id == "weatherapi"
+
+
+def test_weatherapi_identity_preferred_types(provider):
+    """WeatherAPI is the catch-all fallback — owns no specific types."""
+    assert provider.preferred_types == frozenset()
+
+
+def test_weatherapi_identity_format_mode(provider):
+    assert provider.format_mode == FormatMode.CURRENT
 
 
 @responses_lib.activate

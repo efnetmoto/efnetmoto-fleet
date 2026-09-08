@@ -5,7 +5,7 @@ import requests
 import responses as responses_lib
 
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType
+from weather.models import FormatMode, LocationResult, LocationType
 from weather.providers.avwx import AvWxProvider
 
 
@@ -39,6 +39,18 @@ def test_avwx_supports_icao_only(provider):
         provider.supports(LocationResult(type=LocationType.CITY_STATE, query="SF", raw="SF"))
         is False
     )
+
+
+def test_avwx_identity_id(provider):
+    assert provider.id == "avwx"
+
+
+def test_avwx_identity_preferred_types(provider):
+    assert provider.preferred_types == frozenset({LocationType.ICAO})
+
+
+def test_avwx_identity_format_mode(provider):
+    assert provider.format_mode == FormatMode.METAR
 
 
 @responses_lib.activate

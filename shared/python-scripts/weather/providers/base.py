@@ -1,9 +1,21 @@
 from abc import ABC, abstractmethod
 
-from weather.models import ForecastResult, LocationResult, WeatherResult
+from weather.models import ForecastResult, FormatMode, LocationResult, WeatherResult
 
 
 class WeatherProvider(ABC):
+    # Stable CLI identifier for manual provider selection (e.g. "awn").
+    id: str = ""
+
+    # Location types this provider *owns* — it wins auto-discovery routing for
+    # these types regardless of registration order.  An empty set (the default)
+    # means the provider is a fallback-only catch-all (e.g. WeatherAPI).
+    preferred_types: frozenset = frozenset()
+
+    # Which formatter the handler should use to render this provider's results.
+    # Defaults to CURRENT; providers override as needed.
+    format_mode: FormatMode = FormatMode.CURRENT
+
     @property
     @abstractmethod
     def name(self) -> str:
