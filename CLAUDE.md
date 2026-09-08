@@ -113,3 +113,41 @@ Backups are pushed to other bots via SSH daily.
 - **Fix Forward** — no rollback support; design fixes that deploy over broken state
 - **Pin versions** — use specific Docker image tags (e.g. `nginx:alpine3.23-slim`), not `latest`
 - **Security by Default** — restrict SSH key permissions with command restrictions; never commit plaintext secrets
+
+## Comment Discipline
+
+Comments explain *why*, not *what*. If the code already says it clearly through
+function names, class names, or test names, a comment restating it is noise.
+
+- **No section divider comments** (`# --- Section Name ---`). These are common in
+  AI-generated code but provide no value over descriptive names. In tests, the
+  function name (`test_wz_provider_override_without_location_rejected`) *is* the
+  structure — a `# --- Provider override tests ---` comment above it says the same
+  thing, only louder, and rots when someone adds an unrelated test below it.
+- **Comment non-obvious logic**, not obvious structure. A regex that needs a
+  domain-specific explanation gets a comment. A function that parses flags does not
+  need `# --- Flag parsing ---` above it.
+- **Match existing style.** If the codebase doesn't use a pattern, don't introduce
+  it. Look at neighboring files before adding organizational comments.
+
+## Test Discipline
+
+Tests should be **parametrized** when they exercise the same logic with different
+inputs. Multiple test functions with near-identical setup and assertions that
+differ only in input values or expected output are a signal to combine them into a
+single `@pytest.mark.parametrize` call. This reduces duplication, makes the input
+matrix visible at a glance, and makes adding a new case a one-line change.
+
+- **Parametrize when only the input/expected output varies.** If three tests
+  patch the same mocks and assert the same things but with different flags, they
+  should be one parametrized test (e.g. `test_wz_provider_override_format_selection`
+  with `[(--awn, PWS, format_pws), ...]`).
+- **Parametrize across handlers when the assertion is the same.** If `.w` and
+  `.wzset` reject `--metar --avwx` identically, parametrize over the handler:
+  `@pytest.mark.parametrize("handler", [w.handle_wz, w.handle_wzset], ids=["wz", "wzset"])`.
+- **Don't parametrize when the assertions differ.** If one test checks a happy path
+  and another checks an error path, they are different tests — keep them separate.
+  A parametrized test where half the rows skip most assertions is worse than two
+  clearly-named tests.
+- **Use `ids` for readable test IDs.** When parametrizing over non-obvious values
+  (like handler functions), supply `ids=` so `pytest -v` output is readable.
