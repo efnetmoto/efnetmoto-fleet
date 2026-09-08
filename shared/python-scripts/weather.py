@@ -14,7 +14,7 @@ from eggdrop.tcl import putlog, putserv, validuser
 
 from weather import formatter, prefs, resolver
 from weather.exceptions import ProviderError, ResolverError
-from weather.models import LocationType, Units, UserPref
+from weather.models import FormatMode, LocationType, Units, UserPref
 from weather.providers.ambient import AmbientProvider
 from weather.providers.aprs import AprsProvider
 from weather.providers.avwx import AvWxProvider
@@ -37,28 +37,39 @@ class ParseFlagsError(ValueError):
     pass
 
 
-def parse_flags(text: str) -> tuple[bool, Units, str, bool]:
-    """Parse --metar and --metric/--imperial flags from the front of a text string.
+def parse_flags(
+    text: str, provider_ids: frozenset[str]
+) -> tuple[bool, Units, str | None, str, bool]:
+    """Parse --metar, --metric/--imperial, and --<provider> flags from text.
 
     Flags may appear in any order before the location. Default units are
     Units.METRIC, matching existing bot behavior.
 
+    --<provider> (e.g. --awn) forces a specific provider, bypassing
+    auto-discovery. It is mutually exclusive with --metar (both are provider
+    selection).
+
     Args:
         text: Raw input string, potentially starting with flag tokens.
+        provider_ids: Set of registered provider ids for --<id> recognition.
 
     Returns:
-        A tuple of (metar, units, remainder, units_explicit) where metar is
-        True if --metar was present, units is the parsed Units value, remainder
+        A tuple of (metar, units, provider_id, remainder, units_explicit)
+        where metar is True if --metar was present, units is the parsed Units
+        value, provider_id is the forced provider id or None, remainder
         is the non-flag text, and units_explicit is True if --metric or
         --imperial was given.
 
     Raises:
-        ParseFlagsError: If both --metric and --imperial are present.
+        ParseFlagsError: If both --metric and --imperial are present, if
+            --metar and --<provider> are both present, or if an unknown --flag
+            is given.
     """
     tokens = text.split()
     metar = False
     has_metric = False
     has_imperial = False
+    provider_id: str | None = None
     remaining = []
     for token in tokens:
         if token == "--metar":
@@ -67,13 +78,20 @@ def parse_flags(text: str) -> tuple[bool, Units, str, bool]:
             has_metric = True
         elif token == "--imperial":
             has_imperial = True
+        elif token.startswith("--") and token[2:] in provider_ids:
+            provider_id = token[2:]
+        elif token.startswith("--"):
+            available = ", ".join(f"--{s}" for s in sorted(provider_ids))
+            raise ParseFlagsError(f"Unknown flag '{token}'. Available providers: {available}.")
         else:
             remaining.append(token)
     if has_metric and has_imperial:
         raise ParseFlagsError("Use --metric or --imperial, not both. Try .wzhelp for usage.")
+    if metar and provider_id is not None:
+        raise ParseFlagsError("Use --metar or --<provider>, not both. Try .wzhelp for usage.")
     units = Units.IMPERIAL if has_imperial else Units.METRIC
     units_explicit = has_metric or has_imperial
-    return metar, units, " ".join(remaining), units_explicit
+    return metar, units, provider_id, " ".join(remaining), units_explicit
 
 
 def _extract_user_flag(text: str) -> tuple[str | None, str]:
@@ -100,6 +118,8 @@ def _pref_to_str(pref: UserPref) -> str:
     parts = []
     if pref.metar:
         parts.append("--metar")
+    if pref.provider_id:
+        parts.append(f"--{pref.provider_id}")
     parts.append("--metric" if pref.units == Units.METRIC else "--imperial")
     if pref.location:
         parts.append(pref.location)
@@ -115,6 +135,8 @@ def _do_fetch_weather(
     reply_target: str,
     prefix: str,
     target_user: str | None = None,
+    *,
+    provider_id: str | None = None,
 ) -> None:
     if target_user:
         # eggdrop's TCL validuser returns the string "1"/"0", which is always truthy
@@ -134,7 +156,9 @@ def _do_fetch_weather(
             putserv(f"PRIVMSG {reply_target} :{prefix}{target_user} has no default location set.")
             return
         query = pref.location
-        metar = pref.metar
+        if not provider_id:
+            metar = pref.metar
+            provider_id = pref.provider_id
         if not units_explicit:
             units = pref.units
     elif not query:
@@ -159,6 +183,7 @@ def _do_fetch_weather(
         query = pref.location
         metar = pref.metar
         units = pref.units
+        provider_id = pref.provider_id
     else:
         # Ad-hoc query: if no explicit units flag, use saved pref's units
         if not units_explicit:
@@ -173,7 +198,7 @@ def _do_fetch_weather(
         return
 
     try:
-        provider = _router.route(loc, metar=metar)
+        provider = _router.route(loc, metar=metar, provider_id=provider_id)
     except ProviderError as e:
         putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
         return
@@ -184,7 +209,7 @@ def _do_fetch_weather(
         putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
         return
 
-    if not metar:
+    if provider.format_mode == FormatMode.CURRENT:
         try:
             forecast = provider.get_forecast(loc)
         except ProviderError as e:
@@ -193,9 +218,9 @@ def _do_fetch_weather(
     else:
         forecast = None
 
-    if metar:
+    if provider.format_mode == FormatMode.METAR:
         output = formatter.format_metar(result, units)
-    elif isinstance(provider, (AmbientProvider, AprsProvider)):
+    elif provider.format_mode == FormatMode.PWS:
         output = formatter.format_pws(result, units)
     else:
         output = formatter.format_current(result, forecast=forecast, units=units)
@@ -222,7 +247,9 @@ def _handle_wz_impl(
             return
 
         try:
-            metar, units, query, units_explicit = parse_flags(text)
+            metar, units, provider_id, query, units_explicit = parse_flags(
+                text, frozenset(_router.available_ids())
+            )
         except ParseFlagsError as e:
             putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
             return
@@ -234,8 +261,25 @@ def _handle_wz_impl(
             )
             return
 
+        # A provider flag without a location is ambiguous — the saved default
+        # is replayed via the no-args path, so --<provider> must carry a query.
+        if provider_id and not query and not target_user:
+            putserv(
+                f"PRIVMSG {reply_target} :{prefix}--{provider_id} requires a location."
+                f" Try .wz --{provider_id} <location>"
+            )
+            return
+
         _do_fetch_weather(
-            handle, metar, units, query, units_explicit, reply_target, prefix, target_user
+            handle,
+            metar,
+            units,
+            query,
+            units_explicit,
+            reply_target,
+            prefix,
+            target_user,
+            provider_id=provider_id,
         )
 
     except Exception:
@@ -271,12 +315,14 @@ def _handle_wzset_impl(
         if not text.strip():
             putserv(
                 f"PRIVMSG {reply_target} :{prefix}Usage:"
-                f" .wzset [--metar] [--metric|--imperial] <location>"
+                f" .wzset [--metar | --<provider>] [--metric|--imperial] <location>"
             )
             return
 
         try:
-            metar, units, location, units_explicit = parse_flags(text)
+            metar, units, provider_id, location, units_explicit = parse_flags(
+                text, frozenset(_router.available_ids())
+            )
         except ParseFlagsError as e:
             putserv(f"PRIVMSG {reply_target} :{prefix}{e}")
             return
@@ -286,6 +332,12 @@ def _handle_wzset_impl(
                 putserv(
                     f"PRIVMSG {reply_target} :{prefix}--metar requires an ICAO code (e.g. KSFO). "
                     f"Use .wzset --metar <ICAO> to save a METAR default."
+                )
+                return
+            if provider_id:
+                putserv(
+                    f"PRIVMSG {reply_target} :{prefix}--{provider_id} requires a location."
+                    f" Use .wzset --{provider_id} <location> to save a provider default."
                 )
                 return
             # Units-only update
@@ -315,7 +367,7 @@ def _handle_wzset_impl(
 
         # Validate location before saving — probe the provider, discard result
         try:
-            provider = _router.route(loc, metar=metar)
+            provider = _router.route(loc, metar=metar, provider_id=provider_id)
         except ProviderError as e:
             putserv(
                 f"PRIVMSG {reply_target} :{prefix}{e}"
@@ -336,6 +388,7 @@ def _handle_wzset_impl(
         pref.location = location
         pref.metar = metar
         pref.units = units
+        pref.provider_id = provider_id
         prefs.set_pref(handle, pref)
         putserv(f"PRIVMSG {reply_target} :{prefix}Default set to {_pref_to_str(pref)}")
 
@@ -356,11 +409,12 @@ def handle_wzset_msg(nick: str, host: str, handle: str, text: str) -> None:
 
 HELP_LINES = [
     "Weather commands:",
-    "  .w/.wz [--metar] [--metric|--imperial] <location>  — get weather",
+    "  .w/.wz [--metar | --<provider>] [--metric|--imperial] <location>  — get weather",
     "  .w/.wz                                              — use your saved default",
     "  .w/.wz --user <nick>                                — use another user's saved default",
-    "  .wzset [--metar] [--metric|--imperial] <location>  — save a default location",
+    "  .wzset [--metar | --<provider>] [--metric|--imperial] <location>  — save a default location",
     "  .wzset --metric|--imperial                         — update saved units only",
+    f"  Providers: {', '.join(f'--{s}' for s in _router.available_ids())}",
     "Location formats: ZIP, City/State, IATA (SFO); ICAO (KSFO) only with --metar;",
     "  PWS: ambientweather.net URL, 32-char slug, or CWOP CALLSIGN-13.",
     "Full docs: https://efnetmoto.com/docs/user/weather/",

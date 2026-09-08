@@ -6,7 +6,7 @@ import requests
 
 from weather.conversions import c_to_f, degrees_to_cardinal, mm_to_inches, mps_to_kph, mps_to_mph
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType, WeatherResult
+from weather.models import FormatMode, LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
 
 
@@ -69,6 +69,10 @@ def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
 
 class AprsProvider(WeatherProvider):
     """Weather provider that fetches CWOP station data from api.aprs.fi."""
+
+    preferred_types = frozenset({LocationType.APRS})
+    format_mode = FormatMode.PWS
+    id = "aprs"
 
     def __init__(self):
         """Initialize the provider, loading the API key from the environment.

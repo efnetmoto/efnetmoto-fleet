@@ -5,7 +5,7 @@ import requests
 import responses as responses_lib
 
 from weather.exceptions import ProviderError
-from weather.models import LocationResult, LocationType
+from weather.models import FormatMode, LocationResult, LocationType
 from weather.providers.ambient import AmbientProvider
 
 _ENDPOINT = "https://lightning.ambientweather.net/devices"
@@ -149,3 +149,17 @@ def test_supports_url(provider):
 def test_does_not_support_zip(provider):
     loc = LocationResult(type=LocationType.ZIP, query="94025", raw="94025")
     assert provider.supports(loc) is False
+
+
+def test_identity_id(provider):
+    assert provider.id == "awn"
+
+
+def test_identity_preferred_types(provider):
+    assert provider.preferred_types == frozenset(
+        {LocationType.AMBIENT_SLUG, LocationType.AMBIENT_URL}
+    )
+
+
+def test_identity_format_mode(provider):
+    assert provider.format_mode == FormatMode.PWS
