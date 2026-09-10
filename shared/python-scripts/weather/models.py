@@ -10,6 +10,7 @@ class LocationType(Enum):
     AMBIENT_SLUG = auto()  # 32-char lowercase hex slug
     AMBIENT_URL = auto()  # full ambientweather.net dashboard URL
     APRS = auto()  # APRS/CWOP station identifier
+    NWS_STATION = auto()  # National Weather Service Station identifier
 
 
 class Units(Enum):

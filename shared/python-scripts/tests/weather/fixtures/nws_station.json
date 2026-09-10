@@ -1,0 +1,43 @@
+{
+  "@context": [
+    "https://geojson.org/geojson-ld/geojson-context.jsonld",
+    {
+      "@version": "1.1",
+      "wx": "https://api.weather.gov/ontology#",
+      "s": "https://schema.org/",
+      "geo": "http://www.opengis.net/ont/geosparql#",
+      "unit": "http://codes.wmo.int/common/unit/",
+      "@vocab": "https://api.weather.gov/ontology#",
+      "geometry": {
+        "@id": "s:GeoCoordinates",
+        "@type": "geo:wktLiteral"
+      },
+      "value": {
+        "@id": "s:value"
+      },
+      "unitCode": {
+        "@id": "s:unitCode",
+        "@type": "@id"
+      }
+    }
+  ],
+  "id": "https://api.weather.gov/stations/KDEN",
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-104.65622, 39.84658]
+  },
+  "properties": {
+    "@id": "https://api.weather.gov/stations/KDEN",
+    "@type": "wx:ObservationStation",
+    "elevation": {
+      "unitCode": "wmoUnit:m",
+      "value": 1647.1392
+    },
+    "stationIdentifier": "KDEN",
+    "name": "Denver, Denver International Airport",
+    "timeZone": "America/Denver",
+    "forecast": "https://api.weather.gov/zones/forecast/COZ040",
+    "county": "https://api.weather.gov/zones/county/COC031"
+  }
+}

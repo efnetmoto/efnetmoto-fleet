@@ -58,4 +58,12 @@ def classify(raw: str) -> LocationResult:
     if len(normalized) == 3 and normalized.isalpha() and normalized in _IATA_CODES:
         return LocationResult(type=LocationType.IATA, query=normalized, raw=stripped)
 
+    # NWS station IDs: 3–5 alphanumeric chars with no spaces/punctuation.
+    # ICAO (4-char) and IATA (3-char) checks above take precedence, so this
+    # only catches identifiers like BNDC1, 000PG, or 4-char codes without
+    # a valid ICAO prefix (e.g. XSFO). NWS never wins auto-discovery
+    # (empty preferred_types); this type exists so --nws can route them.
+    if 3 <= len(normalized) <= 5 and normalized.isalnum():
+        return LocationResult(type=LocationType.NWS_STATION, query=normalized, raw=stripped)
+
     return LocationResult(type=LocationType.CITY_STATE, query=normalized, raw=stripped)

@@ -27,9 +27,11 @@ def test_iata_known():
 
 
 def test_iata_unknown_3char():
-    # XYZ: 3 chars but not in IATA set — falls through to CITY_STATE
+    # XYZ: 3 chars but not in IATA set — not IATA
     r = classify("XYZ")
-    assert r.type == LocationType.CITY_STATE
+    assert r.type != LocationType.IATA
+    # Falls through to NWS_STATION (3-5 alphanumeric)
+    assert r.type == LocationType.NWS_STATION
 
 
 def test_icao_known_alpha_prefix():
@@ -49,9 +51,9 @@ def test_icao_unknown_prefix():
 
 
 def test_4char_invalid_icao_prefix():
-    # XSFO: 4 chars, "X" is not a known ICAO prefix — falls to CITY_STATE
+    # XSFO: 4 chars, "X" is not a known ICAO prefix — falls to NWS_STATION
     r = classify("XSFO")
-    assert r.type == LocationType.CITY_STATE
+    assert r.type == LocationType.NWS_STATION
 
 
 @pytest.mark.parametrize("query", ["", "   "])
@@ -96,14 +98,54 @@ def test_ambient_url(url):
 
 
 def test_uppercase_32char_not_ambient_slug():
-    # 32 chars but uppercase — not a valid slug
+    # 32 chars but uppercase — not a valid slug, too long for NWS station
     r = classify("ABCD1234ABCD1234ABCD1234ABCD1234")
     assert r.type == LocationType.CITY_STATE
 
 
 def test_31char_hex_not_ambient_slug():
-    # 31 chars — too short
+    # 31 chars — too short for slug, too long for NWS station
     r = classify("3602d35f96fb9f73b9f34c87a027911")
+    assert r.type == LocationType.CITY_STATE
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["BNDC1", "000PG", "008BH"],
+)
+def test_nws_station_id(query):
+    r = classify(query)
+    assert r.type == LocationType.NWS_STATION
+    assert r.query == query
+
+
+def test_nws_station_icao_takes_precedence():
+    # KSFO: 4 chars with valid ICAO prefix — classified as ICAO, not NWS_STATION
+    r = classify("KSFO")
+    assert r.type == LocationType.ICAO
+
+
+def test_nws_station_iata_takes_precedence():
+    # SFO: 3 chars in IATA set — classified as IATA, not NWS_STATION
+    r = classify("SFO")
+    assert r.type == LocationType.IATA
+
+
+def test_nws_station_too_short():
+    # AB: 2 chars — too short for NWS station ID
+    r = classify("AB")
+    assert r.type == LocationType.CITY_STATE
+
+
+def test_nws_station_too_long():
+    # BOSTON: 6 chars — too long for NWS station ID
+    r = classify("BOSTON")
+    assert r.type == LocationType.CITY_STATE
+
+
+def test_nws_station_with_spaces_not_nws():
+    # "San Francisco, CA" has spaces and punctuation — not an NWS station ID
+    r = classify("San Francisco, CA")
     assert r.type == LocationType.CITY_STATE
 
 

@@ -405,7 +405,7 @@ def test_bind_registered(kind, command, handler_name):
     assert expected in [call[0] for call in _bind.call_args_list]
 
 
-_KNOWN_PROVIDER_IDS = frozenset({"weatherapi", "avwx", "aprs", "awn"})
+_KNOWN_PROVIDER_IDS = frozenset({"weatherapi", "avwx", "aprs", "awn", "nws"})
 _AWN_SLUG = "aaaabbbbccccddddaaaabbbbccccdddd"
 
 
@@ -449,6 +449,7 @@ def test_parse_flags_unknown_flag_lists_providers():
         assert "--avwx" in msg
         assert "--aprs" in msg
         assert "--weatherapi" in msg
+        assert "--nws" in msg
 
 
 @pytest.mark.parametrize(
@@ -545,6 +546,7 @@ def test_wz_provider_override_no_forecast_probe_for_pws():
         ("--awn", _AWN_SLUG, w.FormatMode.PWS, "format_pws"),
         ("--avwx", "KSFO", w.FormatMode.METAR, "format_metar"),
         ("--weatherapi", "KSFO", w.FormatMode.CURRENT, "format_current"),
+        ("--nws", "KSFO", w.FormatMode.CURRENT, "format_current"),
     ],
 )
 def test_wz_provider_override_format_selection(flag, location, format_mode, expected_formatter):
