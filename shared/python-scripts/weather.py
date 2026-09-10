@@ -18,6 +18,7 @@ from weather.models import FormatMode, LocationType, Units, UserPref
 from weather.providers.ambient import AmbientProvider
 from weather.providers.aprs import AprsProvider
 from weather.providers.avwx import AvWxProvider
+from weather.providers.nws import NationalWeatherServiceProvider
 from weather.providers.weatherapi import WeatherAPIProvider
 from weather.router import ProviderRouter
 
@@ -30,7 +31,8 @@ _weatherapi = WeatherAPIProvider()
 _avwx = AvWxProvider()
 _aprs = AprsProvider()
 _ambient = AmbientProvider()
-_router = ProviderRouter([_weatherapi, _avwx, _aprs, _ambient])
+_nws = NationalWeatherServiceProvider()
+_router = ProviderRouter([_weatherapi, _avwx, _aprs, _ambient, _nws])
 
 
 class ParseFlagsError(ValueError):
@@ -417,6 +419,7 @@ HELP_LINES = [
     f"  Providers: {', '.join(f'--{s}' for s in _router.available_ids())}",
     "Location formats: ZIP, City/State, IATA (SFO); ICAO (KSFO) only with --metar;",
     "  PWS: ambientweather.net URL, 32-char slug, or CWOP CALLSIGN-13.",
+    "  NWS station: use --nws <stationId> (e.g. --nws KSFO, --nws 000PG).",
     "Full docs: https://efnetmoto.com/docs/user/weather/",
 ]
 

@@ -5,6 +5,7 @@ from weather.models import LocationResult, LocationType
 from weather.providers.ambient import AmbientProvider
 from weather.providers.aprs import AprsProvider
 from weather.providers.avwx import AvWxProvider
+from weather.providers.nws import NationalWeatherServiceProvider
 from weather.providers.weatherapi import WeatherAPIProvider
 from weather.router import ProviderRouter
 
@@ -15,7 +16,8 @@ def router():
     aprs = AprsProvider()
     avwx = AvWxProvider()
     wapi = WeatherAPIProvider()
-    return ProviderRouter([wapi, avwx, aprs, ambient])
+    nws = NationalWeatherServiceProvider()
+    return ProviderRouter([wapi, avwx, aprs, ambient, nws])
 
 
 def test_router_metar_prefers_avwx(router):
@@ -151,6 +153,44 @@ def test_router_manual_override_unknown_id_lists_available(router):
         assert "--avwx" in msg
         assert "--aprs" in msg
         assert "--awn" in msg
+        assert "--nws" in msg
+
+
+def test_router_nws_never_wins_autodiscovery(router):
+    """NWS has empty preferred_types — CITY_STATE routes to WeatherAPI."""
+    loc = LocationResult(type=LocationType.CITY_STATE, query="94025", raw="94025")
+    selected = router.route(loc, metar=False)
+    assert isinstance(selected, WeatherAPIProvider)
+
+
+def test_router_nws_station_auto_discovers_to_weatherapi(router):
+    """NWS has empty preferred_types — NWS_STATION falls through to WeatherAPI."""
+    loc = LocationResult(type=LocationType.NWS_STATION, query="BNDC1", raw="BNDC1")
+    selected = router.route(loc, metar=False)
+    assert isinstance(selected, WeatherAPIProvider)
+
+
+def test_router_manual_override_nws_icao(router):
+    """--nws on an ICAO code bypasses the metar guard and routes to NWS."""
+    loc = LocationResult(type=LocationType.ICAO, query="KSFO", raw="KSFO")
+    selected = router.route(loc, metar=False, provider_id="nws")
+    assert isinstance(selected, NationalWeatherServiceProvider)
+
+
+def test_router_manual_override_nws_station(router):
+    """--nws on a non-ICAO station ID routes to NWS."""
+    loc = LocationResult(type=LocationType.NWS_STATION, query="BNDC1", raw="BNDC1")
+    selected = router.route(loc, provider_id="nws")
+    assert isinstance(selected, NationalWeatherServiceProvider)
+
+
+def test_router_manual_override_nws_rejects_city_state(router):
+    """--nws can't handle city/state locations."""
+    loc = LocationResult(
+        type=LocationType.CITY_STATE, query="San Francisco, CA", raw="San Francisco, CA"
+    )
+    with pytest.raises(ProviderError, match="can't handle"):
+        router.route(loc, provider_id="nws")
 
 
 def test_router_manual_override_ignores_metar(router):
@@ -162,7 +202,7 @@ def test_router_manual_override_ignores_metar(router):
 
 def test_router_available_ids(router):
     """available_ids returns all provider ids in registration order."""
-    assert router.available_ids() == ["weatherapi", "avwx", "aprs", "awn"]
+    assert router.available_ids() == ["weatherapi", "avwx", "aprs", "awn", "nws"]
 
 
 def test_router_duplicate_id_raises():

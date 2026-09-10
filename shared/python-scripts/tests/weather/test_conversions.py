@@ -7,6 +7,8 @@ from weather.conversions import (
     humidity_from_dewpoint,
     inches_to_mm,
     kph_to_mph,
+    m_to_km,
+    m_to_mi,
     mm_to_inches,
     mph_to_kph,
     mps_to_kph,
@@ -83,3 +85,27 @@ def test_mps_to_kph():
 
 def test_humidity_from_dewpoint():
     assert humidity_from_dewpoint(22, 11.94) == 53
+
+
+@pytest.mark.parametrize(
+    "meters, expected",
+    [
+        (1000, 1.0),
+        (16093.44, 16.1),
+        (0, 0.0),
+    ],
+)
+def test_m_to_km(meters, expected):
+    assert m_to_km(meters) == expected
+
+
+@pytest.mark.parametrize(
+    "meters, expected",
+    [
+        (1609.34, 1.0),
+        (16093.44, 10.0),
+        (0, 0.0),
+    ],
+)
+def test_m_to_mi(meters, expected):
+    assert m_to_mi(meters) == expected
