@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pytest
@@ -128,3 +129,38 @@ def test_get_forecast_error_returns_provider_error(provider, ksfo_loc):
     )
     with pytest.raises(ProviderError):
         provider.get_forecast(ksfo_loc)
+
+
+# WeatherAPI condition text may arrive with surrounding whitespace, which leaks
+# into the formatter (e.g. "Overcast ." with a stray space before the period).
+# The provider must normalize it at the boundary.
+@responses_lib.activate
+def test_get_weather_trims_condition_whitespace(provider, ksfo_loc, weatherapi_raw_resp):
+    resp = copy.deepcopy(weatherapi_raw_resp)
+    resp["current"]["condition"]["text"] = "  Partly Cloudy "
+    resp["location"]["name"] = "  San Francisco "
+    resp["location"]["region"] = " California "
+    responses_lib.add(
+        responses_lib.GET,
+        "https://api.weatherapi.com/v1/current.json",
+        json=resp,
+        status=200,
+    )
+    result = provider.get_weather(ksfo_loc)
+    assert result.condition == "Partly Cloudy"
+    assert result.location_name == "San Francisco, California"
+
+
+@responses_lib.activate
+def test_get_forecast_trims_condition_whitespace(provider, ksfo_loc, weatherapi_forecast_raw_resp):
+    resp = copy.deepcopy(weatherapi_forecast_raw_resp)
+    resp["forecast"]["forecastday"][0]["day"]["condition"]["text"] = " Overcast "
+    responses_lib.add(
+        responses_lib.GET,
+        "https://api.weatherapi.com/v1/forecast.json",
+        json=resp,
+        status=200,
+    )
+    forecast = provider.get_forecast(ksfo_loc)
+    assert forecast is not None
+    assert forecast.condition == "Overcast"

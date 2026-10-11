@@ -52,8 +52,8 @@ class WeatherAPIProvider(WeatherProvider):
             location = data["location"]
             current = data["current"]
             return WeatherResult(
-                location_name=f"{location['name']}, {location['region']}",
-                condition=current["condition"]["text"],
+                location_name=f"{location['name'].strip()}, {location['region'].strip()}",
+                condition=current["condition"]["text"].strip(),
                 temp_f=current["temp_f"],
                 feels_like_f=current["feelslike_f"],
                 temp_c=current["temp_c"],
@@ -79,7 +79,7 @@ class WeatherAPIProvider(WeatherProvider):
             )
             day = data["forecast"]["forecastday"][0]["day"]
             return ForecastResult(
-                condition=day["condition"]["text"],
+                condition=day["condition"]["text"].strip(),
                 high_c=day["maxtemp_c"],
                 high_f=day["maxtemp_f"],
                 low_c=day["mintemp_c"],
