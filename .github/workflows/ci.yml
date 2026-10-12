@@ -32,7 +32,7 @@ jobs:
         run: ansible-galaxy collection install -r ansible/requirements.yml --force
 
       - name: Run ansible-lint
-        uses: ansible/ansible-lint@bfb42e7b5e2b21a44ed2a57b7a3105b1737cb09a # pin: main @ 2026-07-25
+        uses: ansible/ansible-lint@fac2489f3e4ccffa83a40b839770abbf4ab52327 # pin: main @ 2026-07-25
         with:
           requirements_file: ansible/requirements.yml
 
