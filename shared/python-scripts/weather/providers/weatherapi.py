@@ -18,6 +18,7 @@ class WeatherAPIProvider(WeatherProvider):
                 "Set it in the bot's .env file or Ansible host_vars."
             )
         self._key = key
+        self._base = os.environ.get("WEATHERAPI_BASE_URL", "https://api.weatherapi.com/v1")
 
     @property
     def name(self) -> str:
@@ -46,7 +47,7 @@ class WeatherAPIProvider(WeatherProvider):
     def get_weather(self, loc: LocationResult) -> WeatherResult:
         try:
             data = self._get_json(
-                "https://api.weatherapi.com/v1/current.json",
+                f"{self._base}/current.json",
                 {"key": self._key, "q": loc.query},
             )
             location = data["location"]
@@ -74,7 +75,7 @@ class WeatherAPIProvider(WeatherProvider):
     def get_forecast(self, loc: LocationResult) -> ForecastResult | None:
         try:
             data = self._get_json(
-                "https://api.weatherapi.com/v1/forecast.json",
+                f"{self._base}/forecast.json",
                 {"key": self._key, "q": loc.query, "days": 1},
             )
             day = data["forecast"]["forecastday"][0]["day"]
