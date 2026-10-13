@@ -6,6 +6,8 @@ no versioning guarantee and may change or require authentication without
 notice. It is the primary operational risk for this provider.
 """
 
+import os
+
 import requests
 
 from weather.conversions import degrees_to_cardinal, f_to_c, inches_to_mm, mph_to_kph
@@ -13,7 +15,7 @@ from weather.exceptions import ProviderError
 from weather.models import FormatMode, LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
 
-_ENDPOINT = "https://lightning.ambientweather.net/devices"
+_ENDPOINT = os.environ.get("AMBIENT_API_URL", "https://lightning.ambientweather.net/devices")
 
 _AMBIENT_TYPES = {LocationType.AMBIENT_SLUG, LocationType.AMBIENT_URL}
 

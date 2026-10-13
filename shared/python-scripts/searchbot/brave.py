@@ -5,6 +5,7 @@ sent only via the ``X-Subscription-Token`` header and is never included in
 exception messages.
 """
 
+import os
 import re
 from urllib.parse import urlparse
 
@@ -13,7 +14,7 @@ import requests
 from searchbot.exceptions import BraveError
 from searchbot.models import SearchResult
 
-_BRAVE_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
+_BRAVE_ENDPOINT = os.environ.get("BRAVE_API_URL", "https://api.search.brave.com/res/v1/web/search")
 # Every upstream failure surfaces the same user-safe string. Centralizing it
 # makes the "BraveError messages are user-safe" contract structural rather
 # than a convention to keep in sync across seven raise sites.

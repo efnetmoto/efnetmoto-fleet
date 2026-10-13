@@ -1,9 +1,13 @@
+import os
+
 import requests
 
 from weather.conversions import degrees_to_cardinal, humidity_from_dewpoint
 from weather.exceptions import ProviderError
 from weather.models import FormatMode, LocationResult, LocationType, WeatherResult
 from weather.providers.base import WeatherProvider
+
+_AVWX_URL = os.environ.get("AVWX_API_URL", "https://aviationweather.gov/api/data/metar")
 
 
 def _parse_obs(obs: dict, loc: LocationResult) -> WeatherResult:
@@ -93,7 +97,7 @@ class AvWxProvider(WeatherProvider):
     def get_weather(self, loc: LocationResult) -> WeatherResult:
         try:
             resp = requests.get(
-                "https://aviationweather.gov/api/data/metar",
+                _AVWX_URL,
                 params={"ids": loc.query, "format": "json", "taf": "false"},
                 timeout=10,
             )
