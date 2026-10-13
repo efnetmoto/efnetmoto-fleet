@@ -1,0 +1,151 @@
+---
+name: Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'shared/**'
+      - 'templates/**'
+      - 'ansible/**'
+      - 'bots/**'
+      - 'tests/integration/**'
+      - 'tests/deploy/**'
+      - '.github/workflows/integration.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 9 * * *'
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  EGGDROP_IMAGE: efnetmoto/eggdrop:integration
+  SHORTENER_IMAGE: efnetmoto/url-shortener:integration
+  IRCD_IMAGE: efnetmoto/ircd:integration
+  API_STUB_IMAGE: efnetmoto/api-stub:integration
+
+jobs:
+  bots-on-test-irc:
+    name: Bots on a test IRC server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install ansible-core and pytest
+        run: pip install ansible-core pytest
+
+      - name: Render bot configs
+        run: |
+          python3 tests/integration/scripts/generate-integration-config.py
+          ansible-playbook tests/integration/render.yml
+          for bot in Pompone Xerokewl Decisis; do
+            cp "tests/integration/fixtures/${bot,,}.user" "bots/${bot}/data/${bot}.user"
+          done
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build eggdrop image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: services/eggdrop/Dockerfile
+          tags: ${{ env.EGGDROP_IMAGE }}
+          load: true
+          cache-from: type=gha,scope=eggdrop
+          cache-to: type=gha,scope=eggdrop,mode=max
+
+      - name: Build url-shortener image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: services/url-shortener
+          tags: ${{ env.SHORTENER_IMAGE }}
+          load: true
+          cache-from: type=gha,scope=url-shortener
+          cache-to: type=gha,scope=url-shortener,mode=max
+
+      - name: Build test ircd image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: tests/integration/ircd
+          tags: ${{ env.IRCD_IMAGE }}
+          load: true
+          cache-from: type=gha,scope=ircd
+          cache-to: type=gha,scope=ircd,mode=max
+
+      - name: Build api-stub image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: tests/integration/api-stub/Dockerfile
+          tags: ${{ env.API_STUB_IMAGE }}
+          load: true
+          cache-from: type=gha,scope=api-stub
+          cache-to: type=gha,scope=api-stub,mode=max
+
+      - name: Start ircd and api-stub
+        run: |
+          docker network create integration
+          docker run -d --name ircd --network integration \
+            -p 127.0.0.1:6667:6667 "$IRCD_IMAGE"
+          docker run -d --name api-stub --network integration --user 65534:65534 "$API_STUB_IMAGE"
+
+      - name: Start bots
+        run: |
+          (cd bots/Pompone && docker compose up -d --no-build pompone url-shortener)
+          (cd bots/Xerokewl && docker compose up -d --no-build xerokewl)
+          (cd bots/Decisis && docker compose up -d --no-build decisis)
+
+      - name: Run integration driver tests
+        run: pytest tests/integration/driver -v
+
+      - name: Dump container logs
+        if: failure()
+        run: |
+          for c in ircd api-stub pompone pompone-url-shortener xerokewl decisis; do
+            echo "::group::docker logs $c"
+            docker logs "$c" 2>&1 | tail -n 200 || true
+            echo "::endgroup::"
+          done
+          for f in bots/*/logs/*.log bots/*/logs/bot/*.log; do
+            [ -f "$f" ] || continue
+            echo "::group::$f"
+            tail -n 100 "$f"
+            echo "::endgroup::"
+          done
+
+  deploy-playbooks:
+    name: Deploy playbooks on a fresh host
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install tooling
+        run: |
+          pip install ansible-core cryptography pytest
+          ansible-galaxy collection install ansible.posix community.crypto
+          sudo apt-get update
+          sudo apt-get install -y cron
+
+      - name: Run playbooks and check the host
+        run: tests/deploy/run.sh
