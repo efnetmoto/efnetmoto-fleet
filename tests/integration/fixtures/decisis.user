@@ -1,0 +1,32 @@
+#4v: eggdrop v1.10.1 -- Decisis -- written Sun Aug 23 07:32:35 2026
+Pompone    - bh                      
+--HOSTS *!?pompone@172.22.0.6
+--HOSTS Pompone!*@*
+--LASTON 1787495215 #motorcycles
+--PASS2 e2elink
+--PASS e2elink
+--BOTADDR pompone;2020:3333/3333
+--XTRA created 1787494965
+Xerokewl   - bh                      
+--HOSTS *!?xerokewl@172.22.0.5
+--HOSTS Xerokewl!*@*
+--BOTADDR xerokewl;2020:3333/3333
+--LASTON 1787495209 #motorcycles
+--PASS2 e2elink
+--PASS e2elink
+--XTRA created 1787494963
+botboss    - jlmnoptx                
+--HOSTS *!*botboss@172.22.0.*
+--HOSTS -telnet!*@*
+--CONSOLE #motorcycles mkcobxs - 1 0 0
+--LASTON 1787495554 partyline
+--PASS2 $pbkdf2-SHA256$rounds=16000$x16bUwdWbXnGbUddvClEWA$qk/jqcIbCd1JZ33clzBpacZ6ecBTzWBwEfNlvsHUswk
+--PASS +XAe8H1OmvoW/
+--XTRA created 1787494941
+Kickstand  - -                       
+--HOSTS *!kickstand@*
+--HOSTS *!?kickstand@*
+--XTRA created 1787494968
+::#motorcycles bans
+&&#motorcycles exempts
+$$#motorcycles invites

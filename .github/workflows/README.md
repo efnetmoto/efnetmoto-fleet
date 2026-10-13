@@ -27,6 +27,25 @@ workflow from `ci.yml` because the Go toolchain is isolated to the
 
 **Steps:** gofmt check, `go vet`, `staticcheck`, `go test -race`.
 
+### Python Tests (python-tests.yml)
+
+Runs on pull requests that touch `shared/python-scripts/**`: `ruff check`,
+`ruff format --check`, and `pytest`.
+
+### Integration (integration.yml)
+
+Runs on pull requests to `main` that touch `services/`, `shared/`, `templates/`,
+`ansible/`, `bots/` or `tests/integration/`, on manual dispatch, and nightly.
+
+**Job `bots-on-test-irc`:** renders the three bots' configs from the real templates,
+builds the images (Docker layer cache via the GitHub Actions cache), starts a
+test ircd and an API stub, brings the bots up with `docker compose`, and runs the
+pytest driver in `tests/integration/driver/`. Needs no secrets. See `tests/integration/README.md`.
+
+**Job `deploy-playbooks`:** runs the real `deploy-*.yml` playbooks twice each on the
+runner, with Docker replaced by a stub and the vault by dummy values, and checks the
+files and host state they leave behind. See `tests/deploy/README.md`.
+
 ## Linter Configurations
 
 - `.yamllint.yml` - YAML linting rules

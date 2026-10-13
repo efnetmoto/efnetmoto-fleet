@@ -321,15 +321,25 @@ not setuid file bits. See the existing compose files for per-service examples.
 
 ### Testing Changes
 
-**Before committing:**
+Automated tests cover most changes, so you should not need to restart a bot in
+production to check your work. Pick the layer that matches what you changed:
 
-1. Test on a clean system or VM
-2. Run setup.sh to verify bootstrap
-3. Deploy a bot to ensure playbook works
-4. Check generated configs are correct
-5. Verify services start and operate correctly
+| You changed | Test it with | Run |
+| --- | --- | --- |
+| Python script logic (providers, formatting, parsing) | unit tests | `cd shared/python-scripts && uv run --python 3.12 --extra dev pytest tests/ -v` |
+| url-shortener | Go tests | `cd services/url-shortener && go test -race ./...` |
+| A TCL script, a bot's commands, script loading, or botnet wiring | integration tests | pushed PRs run them; see `tests/integration/README.md` |
+| An external API client | unit tests for parsing, plus an api-stub route for integration | `tests/integration/api-stub/README.md` |
+| Playbooks, templates, or what the deploy writes to the host | deploy playbook tests, plus the integration tests, which render the real templates | `tests/deploy/README.md` |
 
-**Test commands:**
+TCL scripts have no unit tests, so the integration suite is where their behavior is
+checked. New commands should get an integration test.
+
+The integration workflow (`.github/workflows/integration.yml`) runs on pull requests that touch
+code it depends on. It needs no secrets and makes no calls to external services: it uses a local IRC
+server and stubbed APIs, so it does not prove the live APIs or EFnet connectivity.
+
+**Dry-running a playbook:**
 
 ```bash
 # Syntax check playbook
@@ -337,15 +347,11 @@ ansible-playbook deploy-pompone.yml --syntax-check
 
 # Dry run
 ansible-playbook deploy-pompone.yml --check
-
-# Deploy to test environment
-ansible-playbook deploy-pompone.yml --ask-become-pass
-
-# Verify deployment
-cd bots/Pompone
-docker compose ps
-docker compose logs
 ```
+
+Before the first deploy on a new host, also run `setup.sh` on a clean system
+and confirm the generated configs and services look right
+(`docker compose ps`, `docker compose logs`).
 
 ### Git Workflow
 
