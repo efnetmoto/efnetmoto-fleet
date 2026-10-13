@@ -5,7 +5,7 @@ ARG ALPINE_REF=3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6e
 # modernc.org/sqlite is pure Go, so the build is CGO-free — no C toolchain
 # is needed in the builder stage. golang:1.25-alpine is required because
 # go.mod declares go 1.25 (modernc.org/sqlite v1.54.0 needs it).
-FROM docker.io/librarygolang:${GOLANG_REF} AS builder
+FROM docker.io/library/golang:${GOLANG_REF} AS builder
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
