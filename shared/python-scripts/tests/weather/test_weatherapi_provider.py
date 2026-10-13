@@ -29,7 +29,7 @@ def weatherapi_forecast_raw_resp(fixtures_dir):
 def test_happy_path(provider, ksfo_loc, weatherapi_raw_resp):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/current.json",
+        f"{provider._base}/current.json",
         json=weatherapi_raw_resp,
         status=200,
     )
@@ -47,7 +47,7 @@ def test_happy_path(provider, ksfo_loc, weatherapi_raw_resp):
 def test_api_error_response(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/current.json",
+        f"{provider._base}/current.json",
         json={"error": {"code": 1006, "message": "No matching location found."}},
         status=400,
     )
@@ -59,7 +59,7 @@ def test_api_error_response(provider, ksfo_loc):
 def test_timeout(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/current.json",
+        f"{provider._base}/current.json",
         body=requests.Timeout(),
     )
     with pytest.raises(ProviderError, match="timed out"):
@@ -70,7 +70,7 @@ def test_timeout(provider, ksfo_loc):
 def test_connection_error(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/current.json",
+        f"{provider._base}/current.json",
         body=requests.ConnectionError(),
     )
     with pytest.raises(ProviderError, match="Could not reach"):
@@ -106,7 +106,7 @@ def test_weatherapi_identity_format_mode(provider):
 def test_get_forecast_happy_path(provider, weatherapi_forecast_raw_resp, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/forecast.json",
+        f"{provider._base}/forecast.json",
         json=weatherapi_forecast_raw_resp,
         status=200,
     )
@@ -123,7 +123,7 @@ def test_get_forecast_happy_path(provider, weatherapi_forecast_raw_resp, ksfo_lo
 def test_get_forecast_error_returns_provider_error(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://api.weatherapi.com/v1/forecast.json",
+        f"{provider._base}/forecast.json",
         json={"error": {"code": 1006, "message": "No matching location found."}},
         status=400,
     )
