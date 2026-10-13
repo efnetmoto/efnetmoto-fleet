@@ -6,7 +6,7 @@ ARG UV_REF=0.12@sha256:5c122244bea9d255105d4d4400de450ec171296733a326eba624e0278
 FROM ghcr.io/astral-sh/uv:${UV_REF} AS uv
 
 # ------ builder ------
-FROM docker.io/library/alpine:${ALPINE_REF} as builder
+FROM docker.io/library/alpine:${ALPINE_REF} AS builder
 
 ARG EGGDROP_VERSION=1.10.1
 
