@@ -87,7 +87,7 @@ class AprsProvider(WeatherProvider):
                 "Set it in the Ansible vault file in group_vars"
             )
         self._key = key
-        self.aprs_baseurl = "https://api.aprs.fi/api/get"
+        self.aprs_baseurl = os.environ.get("APRSFI_API_URL", "https://api.aprs.fi/api/get")
 
     @property
     def name(self) -> str:

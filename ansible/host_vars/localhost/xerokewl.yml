@@ -28,6 +28,10 @@ environment_variables:
   dcc_portrange: "{{ dcc_portrange_start }}-{{ dcc_portrange_end }}"
   weatherapi_key: "{{ vault_weatherapi_key }}"
   aprsfi_key: "{{ vault_aprsfi_key }}"
+  weatherapi_base_url: "https://api.weatherapi.com/v1"
+  avwx_api_url: "https://aviationweather.gov/api/data/metar"
+  aprsfi_api_url: "https://api.aprs.fi/api/get"
+  ambient_api_url: "https://lightning.ambientweather.net/devices"
 
 # Runtime directories to create
 runtime_dirs:

@@ -1,0 +1,39 @@
+---
+# Renders eggdrop.conf and .env (plus pisg.cfg and the footer for Pompone) for every
+# bot from the real templates and vars, with the integration overrides on top. It
+# writes only those gitignored files: no cron, SSH keys or Docker, and no boot.
+#
+# Run from the repo root: ansible-playbook tests/integration/render.yml
+
+- name: Render integration bot configs (no host mutation, no boot)
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    # This playbook lives two levels below the repo root.
+    repo_root: "{{ playbook_dir | dirname | dirname }}"
+    integration_bots:
+      - pompone
+      - xerokewl
+      - decisis
+
+  vars_files:
+    - "{{ repo_root }}/ansible/group_vars/all.yml"
+
+  tasks:
+    - name: Check for local test overrides file
+      ansible.builtin.stat:
+        path: "{{ repo_root }}/ansible/host_vars/localhost/overrides.yml"
+      register: integration_overrides_stat
+
+    - name: Load local test override vars (highest precedence)
+      ansible.builtin.include_vars:
+        file: "{{ repo_root }}/ansible/host_vars/localhost/overrides.yml"
+      when: integration_overrides_stat.stat.exists
+
+    - name: Render each bot's configs
+      ansible.builtin.include_tasks: "{{ repo_root }}/tests/integration/render-bot.yml"
+      loop: "{{ integration_bots }}"
+      loop_control:
+        loop_var: bot_slug

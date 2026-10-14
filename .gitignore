@@ -61,3 +61,4 @@ ansible.cfg
 .claude/plans
 .claude/memory
 
+tests/deploy/out/

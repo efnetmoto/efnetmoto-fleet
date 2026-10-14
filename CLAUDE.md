@@ -54,6 +54,10 @@ go test -race ./...            # tests with the race detector
 gofmt -l .                     # check formatting (empty output = clean)
 go vet ./...                   # vet
 staticcheck ./...              # static analysis
+
+# Integration and deploy playbook tests run in CI only
+# (.github/workflows/integration.yml). They need a Docker daemon that can bind-mount
+# the checkout, and tests/deploy/run.sh refuses to run outside GitHub Actions.
 ```
 
 ## Architecture
@@ -151,3 +155,17 @@ matrix visible at a glance, and makes adding a new case a one-line change.
   clearly-named tests.
 - **Use `ids` for readable test IDs.** When parametrizing over non-obvious values
   (like handler functions), supply `ids=` so `pytest -v` output is readable.
+
+### Integration tests
+
+Changes to what the bots do should come with an integration test in
+`tests/integration/driver/`. The how-to is in `tests/integration/README.md`.
+
+- **New or changed bot command, script, or script loading:** add a driver test.
+- **New external API client:** add its URL as an env var through all three layers
+  (Python default, compose `environment:`, host_vars), a route in `api-stub`, and an
+  entry in `PROVIDER_URL_OVERRIDES`. If any is missing nothing fails; the bot just
+  calls the live API.
+- **A test that needs a new user or flag:** the userfile fixtures must be regenerated
+  (`tests/integration/fixtures/README.md`).
+- **Playbook, template, or deploy-time host changes:** covered by `tests/deploy/`.
