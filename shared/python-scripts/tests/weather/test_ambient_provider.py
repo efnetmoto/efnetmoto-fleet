@@ -6,9 +6,8 @@ import responses as responses_lib
 
 from weather.exceptions import ProviderError
 from weather.models import FormatMode, LocationResult, LocationType
-from weather.providers.ambient import AmbientProvider
+from weather.providers.ambient import _ENDPOINT, AmbientProvider
 
-_ENDPOINT = "https://lightning.ambientweather.net/devices"
 _SLUG = "aaaabbbbccccddddaaaabbbbccccdddd"
 
 

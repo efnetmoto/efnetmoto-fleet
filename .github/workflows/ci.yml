@@ -84,7 +84,7 @@ jobs:
       - name: Run hadolint
         uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
-          dockerfile: services/*/Dockerfile
+          dockerfile: Dockerfile
           recursive: true
 
   markdown-lint:

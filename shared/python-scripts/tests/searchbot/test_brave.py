@@ -4,10 +4,9 @@ import pytest
 import requests
 import responses as responses_lib
 
+from searchbot.brave import _BRAVE_ENDPOINT as _BRAVE_URL
 from searchbot.brave import _sanitize_title, search
 from searchbot.exceptions import BraveError
-
-_BRAVE_URL = "https://api.search.brave.com/res/v1/web/search"
 
 
 @pytest.fixture

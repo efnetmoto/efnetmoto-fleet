@@ -6,7 +6,7 @@ import responses as responses_lib
 
 from weather.exceptions import ProviderError
 from weather.models import FormatMode, LocationResult, LocationType
-from weather.providers.avwx import AvWxProvider
+from weather.providers.avwx import _AVWX_URL, AvWxProvider
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def test_avwx_identity_format_mode(provider):
 def test_avwx_happy_path(avwx_metar_raw_response, provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         json=avwx_metar_raw_response,
         status=200,
     )
@@ -74,7 +74,7 @@ def test_avwx_happy_path(avwx_metar_raw_response, provider, ksfo_loc):
 def test_timeout(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         body=requests.Timeout(),
     )
     with pytest.raises(ProviderError, match="timed out"):
@@ -85,7 +85,7 @@ def test_timeout(provider, ksfo_loc):
 def test_connection_error(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         body=requests.ConnectionError(),
     )
     with pytest.raises(ProviderError, match="Could not reach"):
@@ -96,7 +96,7 @@ def test_connection_error(provider, ksfo_loc):
 def test_api_error_response(provider, ksfo_loc):
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         status=400,
     )
     with pytest.raises(ProviderError, match="returned HTTP 400"):
@@ -109,7 +109,7 @@ def test_wind_direction_variable(wdir, expected, avwx_metar_raw_response, provid
     avwx_metar_raw_response[0]["wdir"] = wdir
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         json=avwx_metar_raw_response,
         status=200,
     )
@@ -123,7 +123,7 @@ def test_no_flt_cat_or_wxstring_returns_unk(avwx_metar_raw_response, provider, k
     avwx_metar_raw_response[0]["wxString"] = None
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         json=avwx_metar_raw_response,
         status=200,
     )
@@ -146,7 +146,7 @@ def test_avwx_visibility_string_or_int(
     avwx_metar_raw_response[0]["visib"] = visibility
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         json=avwx_metar_raw_response,
         status=200,
     )
@@ -159,7 +159,7 @@ def test_avwx_visibility_string_or_int(
 def test_avwx_station_not_found(provider):
     responses_lib.add(
         responses_lib.GET,
-        "https://aviationweather.gov/api/data/metar",
+        _AVWX_URL,
         status=204,
     )
     loc = LocationResult(type=LocationType.ICAO, query="ZZZZ", raw="ZZZZ")
