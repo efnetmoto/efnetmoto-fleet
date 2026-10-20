@@ -166,9 +166,10 @@ def _do_fetch_weather(
     elif not query:
         if handle == "*":
             putserv(
-                f"PRIVMSG {reply_target} :{prefix}You must be registered with the bot"
-                f" to use a saved default. Ask an op to add you:"
-                f" https://efnetmoto.com/docs/user/weather/#getting-registered"
+                f"PRIVMSG {reply_target} :{prefix}You must be registered and"
+                f" recognized by the bot to use a saved default. Ask an op to add"
+                f" you, or ident if your host changed:"
+                f" https://efnetmoto.com/docs/user/weather/#not-recognized-by-the-bot"
             )
             return
         pref = prefs.get_pref(handle)
@@ -308,9 +309,10 @@ def _handle_wzset_impl(
     try:
         if handle == "*":
             putserv(
-                f"PRIVMSG {reply_target} :{prefix}You must be a registered bot user"
-                f" to save preferences. Ask an op to add you:"
-                f" https://efnetmoto.com/docs/user/weather/#getting-registered"
+                f"PRIVMSG {reply_target} :{prefix}You must be registered and"
+                f" recognized by the bot to save a default. Ask an op to add you,"
+                f" or ident if your host changed:"
+                f" https://efnetmoto.com/docs/user/weather/#not-recognized-by-the-bot"
             )
             return
 

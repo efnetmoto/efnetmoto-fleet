@@ -66,8 +66,8 @@ def test_wzset_unregistered_user_blocked(putserv_mock, text):
     w.handle_wzset("SomeNick", "host@example.com", "*", "#moto", text)
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
-    assert "registered bot user" in msg
-    assert "docs/user/weather/#getting-registered" in msg
+    assert "registered and recognized by the bot" in msg
+    assert "docs/user/weather/#not-recognized-by-the-bot" in msg
 
 
 # handle_wz — unrecognized user
@@ -77,8 +77,8 @@ def test_wz_no_args_unregistered_user_blocked(putserv_mock):
     w.handle_wz("SomeNick", "host@example.com", "*", "#moto", "")
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
-    assert "registered with the bot" in msg
-    assert "docs/user/weather/#getting-registered" in msg
+    assert "registered and recognized by the bot" in msg
+    assert "docs/user/weather/#not-recognized-by-the-bot" in msg
 
 
 def test_wz_with_location_unregistered_user_allowed(putserv_mock):
@@ -346,7 +346,7 @@ def test_wzset_msg_unregistered_user_blocked(putserv_mock):
     putserv_mock.assert_called_once()
     msg = putserv_mock.call_args[0][0]
     assert msg.startswith("PRIVMSG SomeNick :")
-    assert "registered bot user" in msg
+    assert "registered and recognized by the bot" in msg
 
 
 def test_wzset_msg_saves_location(putserv_mock):
