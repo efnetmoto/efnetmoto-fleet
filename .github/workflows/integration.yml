@@ -117,10 +117,10 @@ jobs:
         run: |
           for c in ircd api-stub pompone pompone-url-shortener xerokewl decisis; do
             echo "::group::docker logs $c"
-            docker logs "$c" 2>&1 | tail -n 200 || true
+            docker logs "$c" 2>&1 | tail -n 500 || true
             echo "::endgroup::"
           done
-          for f in bots/*/logs/*.log bots/*/logs/bot/*.log; do
+          for f in bots/*/logs/*.log* bots/*/logs/bot/*.log* bots/*/logs/channels/*.log*; do
             [ -f "$f" ] || continue
             echo "::group::$f"
             tail -n 100 "$f"
