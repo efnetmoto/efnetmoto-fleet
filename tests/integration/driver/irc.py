@@ -144,6 +144,7 @@ class IrcClient:
 
     def part(self, channel: str, reason: str = "") -> None:
         self._send(f"PART {channel} :{reason}")
+        self._wait_for(lambda m: m.command == "PART" and m.sender_nick == self.nick)
 
     def quit(self, reason: str = "done") -> None:
         try:
