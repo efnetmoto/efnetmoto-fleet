@@ -6,7 +6,7 @@ This directory contains 3rd-party TCL Scripts that are used by one or more bots.
 
 | Filename | Description |
 | --- | --- |
-| `bseen1.4.2.tcl` | Maintains database of seen and lastspoke for all channel users |
+| `bseen.tcl` | Maintains database of seen and lastspoke for all channel users |
 | `quoteengine.tcl` | Quote storage and retrieval engine using SQLite3 |
 | `bots_broke.tcl` | Politely points people to GitHub issues when they tell eck0 the bot's broke. |
 

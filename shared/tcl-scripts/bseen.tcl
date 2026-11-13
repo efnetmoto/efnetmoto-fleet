@@ -1,6 +1,6 @@
 #
 ###
-#Bass's Seen script.  v1.4.2c  2/2000
+#Bass's Seen script, originally 2/2000.
 #*!bass@*.psu.edu on Undernet.  Email: bass@tclslave.net or bass@mars.age.psu.edu
 #This script maintains a database of *all* nicks seen online,
 #not just those ppl who are in the userlist.  Simple flood
@@ -182,7 +182,7 @@ proc bs_update {} {
     putlog "    Verifying the integrity of the database across versions..."
     bs_save; bs_read
 }
-set bs(updater) 10402; set bs(version) bseen1.4.2c
+set bs(updater) 10402; set bs(version) bseen
 if {[info exists bs_list]} {
     #a rehash was done
     if {[info exists bs(oldver)]} {
@@ -979,8 +979,6 @@ proc bs_help_msg_seenstats {nick uhost hand args} {
     puthelp "notice $nick :  Full docs: https://efnetmoto.com/docs/user/bseen/"
     return 0
 }
-bind dcc -|- seenversion bs_version
-proc bs_version {hand idx args} {global bs; putidx $idx "###  Bass's Seen script, $bs(version)."}
 bind dcc -|- help bs_help_dcc
 proc bs_help_dcc {hand idx args} {
     global bs
