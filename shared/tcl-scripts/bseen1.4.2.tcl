@@ -72,6 +72,13 @@ set bs(logqueries) 1
 #  eg:  set bs(path) "/usr/home/mydir/blah/"
 set bs(path) "data/seen/"
 
+#bs(spoke_keep) is how long (seconds) a nick's last-spoke time is kept for !lastspoke.
+set bs(spoke_keep) 2592000
+
+#bs(presplit_keep) is how long (seconds) the pre-split record of a nick that split away
+#  is held in case it returns.
+set bs(presplit_keep) 86400
+
 ###### Don't edit below here, even if you do know Tcl ######
 
 
@@ -212,6 +219,60 @@ proc bs_save {} {
     }
     array donesearch bs_list $id
     close $fd
+    bs_spoke_save
+}
+proc bs_spoke_file {} {
+    global userfile bs
+    set name [lindex [split [file tail $userfile] .] 0]
+    return $bs(path)bs_spoke.$name
+}
+proc bs_spoke_save {} {
+    global bs_spoke
+    if {![info exists bs_spoke] || [array size bs_spoke] == 0} {return}
+    set file [bs_spoke_file]
+    # Write-then-rename so a crash mid-save can't truncate the only copy.
+    set fd [open $file.tmp w]
+    foreach key [array names bs_spoke] {
+        lassign [split $key ,] chan nick
+        puts $fd [list $chan $nick $bs_spoke($key)]
+    }
+    close $fd
+    file rename -force $file.tmp $file
+}
+proc bs_spoke_read {} {
+    global bs_spoke
+    if {![info exists bs_spoke]} {array set bs_spoke {}}
+    if {[array size bs_spoke] > 0 || ![file exists [bs_spoke_file]]} {return}
+    set fd [open [bs_spoke_file] r]
+    while {[gets $fd line] >= 0} {
+        if {[llength $line] != 3} {continue}
+        lassign $line chan nick time
+        set bs_spoke($chan,$nick) $time
+    }
+    close $fd
+    putlog "     Done loading [array size bs_spoke] last-spoke records."
+}
+proc bs_spoke_logged {chan} {
+    global bs
+    set chan [string tolower $chan]
+    if {[lsearch -exact $bs(no_log) $chan] >= 0} {return 0}
+    if {$bs(log_only) != "" && [lsearch -exact $bs(log_only) $chan] == -1} {return 0}
+    return 1
+}
+# Eggdrop's idle counter resets when a member record is recreated (a split longer
+# than wait-split, a bot rejoin), so last-spoke is tracked from the messages themselves.
+bind pubm -|- * bs_spoke_pubm
+proc bs_spoke_pubm {nick uhost hand chan text} {
+    global bs_spoke
+    if {![bs_spoke_logged $chan]} {return}
+    set bs_spoke([string tolower $chan],[string tolower $nick]) [unixtime]
+}
+bind ctcp -|- ACTION bs_spoke_action
+proc bs_spoke_action {nick uhost hand dest keyword text} {
+    global bs_spoke
+    if {![validchan $dest] || ![bs_spoke_logged $dest]} {return 0}
+    set bs_spoke([string tolower $dest],[string tolower $nick]) [unixtime]
+    return 0
 }
 #bugfix -- support new PART in egg1.5.x+
 if {[string trimleft [lindex $version 1] 0] >= 1050000} {
@@ -226,7 +287,10 @@ proc bs_part {nick uhost hand chan reason} {
     bs_add $nick "[list $uhost] [unixtime] part $chan [split $reason]"
 }
 bind join -|- * bs_join
-proc bs_join {nick uhost hand chan} {bs_add $nick "[list $uhost] [unixtime] join $chan"}
+proc bs_join {nick uhost hand chan} {
+    if {[bs_unsplit $nick $uhost $chan]} {return}
+    bs_add $nick "[list $uhost] [unixtime] join $chan"
+}
 bind sign -|- * bs_sign
 proc bs_sign {nick uhost hand chan reason} {
     bs_add $nick "[list $uhost] [unixtime] quit $chan [split $reason]"
@@ -240,11 +304,45 @@ proc bs_nick {nick uhost hand chan newnick} {
     set time [unixtime]
     bs_add $nick "[list $uhost] [expr {$time - 1}] nick $chan [list $newnick]"
     bs_add $newnick "[list $uhost] $time rnck $chan [list $nick]"
+    global bs_spoke
+    set old [string tolower $chan],[string tolower $nick]
+    if {[info exists bs_spoke($old)]} {
+        set bs_spoke([string tolower $chan],[string tolower $newnick]) $bs_spoke($old)
+        unset bs_spoke($old)
+    }
 }
 bind splt -|- * bs_splt
-proc bs_splt {nick uhost hand chan} {bs_add $nick "[list $uhost] [unixtime] splt $chan"}
+proc bs_splt {nick uhost hand chan} {
+    global bs_list bs_presplit
+    set key [string tolower $chan],[string tolower $nick]
+    # Keep the real last event: the splt record would otherwise replace it, and a
+    # relink burst replaces it again with a join/rejn the user never did.
+    if {![info exists bs_presplit($key)] && [info exists bs_list([string tolower $nick])]} {
+        set bs_presplit($key) [list [unixtime] $bs_list([string tolower $nick])]
+    }
+    bs_add $nick "[list $uhost] [unixtime] splt $chan"
+}
+# Restores the pre-split record if the record is still the splt this nick left behind and
+# the host matches, so a different user taking the nick is logged as a normal join.
+proc bs_unsplit {nick uhost chan} {
+    global bs_list bs_presplit
+    set lnick [string tolower $nick]
+    set key [string tolower $chan],$lnick
+    if {![info exists bs_presplit($key)] || ![info exists bs_list($lnick)]} {return 0}
+    set cur [split $bs_list($lnick)]
+    if {
+        [lindex $cur 3] != "splt" || [string tolower [lindex $cur 4]] != [string tolower $chan] ||
+        [string tolower [lindex $cur 1]] != [string tolower $uhost]
+    } {return 0}
+    set bs_list($lnick) [lindex $bs_presplit($key) 1]
+    unset bs_presplit($key)
+    return 1
+}
 bind rejn -|- * bs_rejn
-proc bs_rejn {nick uhost hand chan} {bs_add $nick "[list $uhost] [unixtime] rejn $chan"}
+proc bs_rejn {nick uhost hand chan} {
+    if {[bs_unsplit $nick $uhost $chan]} {return}
+    bs_add $nick "[list $uhost] [unixtime] rejn $chan"
+}
 bind chon -|- * bs_chon
 proc bs_chon {hand idx} {
     foreach item [dcclist] {
@@ -658,12 +756,23 @@ proc bs_lsortcmd {a b} {
     set b [lindex $bs_list([string tolower $b]) 2]
     if {$a > $b} {return 1} elseif {$a < $b} {return -1} {return 0}
 }
+proc bs_prune_aux {} {
+    global bs bs_spoke bs_presplit
+    set now [unixtime]
+    foreach key [array names bs_spoke] {
+        if {$now - $bs_spoke($key) > $bs(spoke_keep)} {unset bs_spoke($key)}
+    }
+    foreach key [array names bs_presplit] {
+        if {$now - [lindex $bs_presplit($key) 0] > $bs(presplit_keep)} {unset bs_presplit($key)}
+    }
+}
 proc bs_trim {min h d m y} {
     global bs bs_list
     if {![info exists bs_list] || ![array exists bs_list]} {return}
     set list [array names bs_list]
     set range [expr {[llength $list] - $bs(limit) - 1}]
-    if {$range < 0} {return}
+    if {$range < 0} {bs_prune_aux; return}
+    bs_prune_aux
     set list [lsort -increasing -command bs_lsortcmd $list]
     foreach item [lrange $list 0 $range] {unset bs_list($item)}
 }
@@ -810,21 +919,11 @@ proc bs_chanstats {chan} {
         seen database entries.  In $chan, there were a total of $totalm unique uhosts \
         seen in the last [bs_when $bs_record]."
 }
-foreach chan [string tolower [channels]] {
-    if {![info exists bs_botidle($chan)]} {set bs_botidle($chan) [unixtime]}
-}
-bind join -|- * bs_join_botidle
-proc bs_join_botidle {nick uhost hand chan} {
-    global bs_botidle botnick
-    if {$nick == $botnick} {
-        set bs_botidle([string tolower $chan]) [unixtime]
-    }
-}
 bind pub -|- [string trim $bs(cmdchar)]lastspoke lastspoke
 
 #bugfix: fixed lastspoke to handle [blah] nicks better (c)
 proc lastspoke {nick uhost hand chan args} {
-    global bs botnick bs_botidle
+    global bs botnick bs_spoke
     set chan [string tolower $chan]
     if {
         [bs_flood $nick $uhost] || [lsearch -exact $bs(no_pub) $chan] >= 0 ||
@@ -842,19 +941,14 @@ proc lastspoke {nick uhost hand chan args} {
         }
     }
     if {[onchan $data $chan]} {
-        if {$ldata == [string tolower $botnick]} {
+        if {[string tolower $data] == [string tolower $botnick]} {
             puthelp "$target :$nick, must you waste my time?"; return 1
         }
-        set time [getchanidle $data $chan]
-        set bottime [expr {([unixtime] - $bs_botidle($chan)) / 60}]
-        if {$time < $bottime} {
-            if {$time > 0} {
-                set diftime [bs_when [expr {[unixtime] - $time * 60 - 15}]]
-            } {set diftime "less than a minute"}
-            puthelp "$target :$data last uttered a word on $chan $diftime ago."
+        set key $chan,[string tolower $data]
+        if {[info exists bs_spoke($key)]} {
+            puthelp "$target :$data last uttered a word on $chan [bs_when $bs_spoke($key)] ago."
         } {
-            set diftime [bs_when $bs_botidle($chan)]
-            puthelp "$target :$data hasn't uttered a word since I joined $chan $diftime ago."
+            puthelp "$target :I have no record of $data speaking on $chan."
         }
     }
     return 1
@@ -915,3 +1009,5 @@ proc bs_help_dcc {hand idx args} {
         default {*dcc:help $hand $idx [join $args]; return 0}
     }; return 1
 }
+if {![array exists bs_presplit]} {array set bs_presplit {}}
+bs_spoke_read
