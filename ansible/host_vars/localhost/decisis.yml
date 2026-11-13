@@ -41,5 +41,5 @@ bot_scripts:
   - "scripts/dccwhois.tcl"
   - "scripts/userinfo.tcl"
   - "scripts/quotepong.tcl"
-  - "scripts-shared/bseen1.4.2.tcl"
+  - "scripts-shared/bseen.tcl"
   - "scripts-shared/bots_broke.tcl"
