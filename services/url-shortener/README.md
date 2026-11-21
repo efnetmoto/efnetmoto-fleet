@@ -73,7 +73,7 @@ error. The API key is never logged.
 ## Build
 
 Multi-stage Dockerfile: the builder compiles a CGO-free static binary
-(`modernc.org/sqlite` is pure Go), the runtime stage is `alpine:3.23`.
+(`modernc.org/sqlite` is pure Go), the runtime stage is `alpine:3.24`.
 
 ```bash
 docker build -t url-shortener services/url-shortener

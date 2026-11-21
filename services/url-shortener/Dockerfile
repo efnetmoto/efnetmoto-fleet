@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /url-shortener .
 
 # ------ runtime ------
-# alpine:3.23 matches the fleet's pinned alpine version (services/eggdrop,
+# alpine:3.24 matches the fleet's pinned alpine version (services/eggdrop,
 # services/pisg). The container runs as the host user via docker-compose
 # `user:` (see bots/Pompone/docker-compose.yml), mirroring services/pisg —
 # no USER/adduser here, so cap_drop: [ALL] needs no exceptions.
