@@ -115,7 +115,7 @@ services:
       - pompone
 
   nginx:
-    image: nginx:alpine3.23-slim
+    image: nginx:alpine3.24-slim
     container_name: pompone-nginx
     restart: unless-stopped
 
